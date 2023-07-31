@@ -101,6 +101,15 @@ std::optional<std::vector<MockProc> > parseMockProcs(std::string filename) {
 	return procs;
 }
 
+/*
+ * based on the process list create a list of commands that the scheduler will interact with
+ * commands include:
+ * init procName: Simulates a user launching a process
+ * cpuUse procName: Simulates the process using the cpu
+ * ioInterrupt procName: Simulates the process getting IO interrupted
+ * ioReturnFromInterrupt procName: Simulates the process returning from IO interrupt
+ * end procName: Simulates the process finishing execution
+ * */
 void createSimulationStory(std::vector<MockProc> procs) {
 	for (size_t i = 0; i < procs.size(); i++) {
 		MockProc p = procs[i];
