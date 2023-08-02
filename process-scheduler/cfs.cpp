@@ -198,6 +198,14 @@ void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
 	}
 }
 
+/*
+ * Linux CompletelyFairScheduler implementation that runs a schduler listening on pipe
+ * if it recvs data on the pipe to enqueue a process it enqueues it internally. On a
+ * separate thread we handle the running of the enqueued processes. When a process
+ * is enqueued we load its instructions into memory. When it is a processes turn if we
+ * get a noOp we just do a redundant loop (a no-op), if it is an IO event we put the process
+ * in a vector and run a timer to evict it when it the timer goes off.
+ * */
 class CompletelyFairScheduler {
 	private:
 		int readPipe;
@@ -220,7 +228,10 @@ class CompletelyFairScheduler {
 					if (recvdSignal.compare("end")) {
 						printf("CFS recvd end of proc enqueueing signal\n");
 						notFinished = false;
+					} else {
+						// read the proc file and load instructions into memory for the process
 					}
+
 				} else {
 					std::cerr << "Child failed to read from the pipe." << std::endl;
 				}
