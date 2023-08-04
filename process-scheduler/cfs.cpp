@@ -85,8 +85,6 @@ public:
   }
 };
 
-// ********************
-
 // ************ Simulator *********************
 
 class MockProc {
@@ -283,6 +281,7 @@ private:
   double vruntime = 0.0;
   int weight = 1024; // default nice set to 0
   std::vector<std::string> instructions;
+  int instrcutionCounter;
 
   // shared readonly memory that is only initialized once and shared by all
   // objects
@@ -339,6 +338,10 @@ public:
     this->vruntime =
         this->vruntime + (weight0 / this->weight) * this->rawRuntime;
   }
+
+  // TODO: run function that given a timeslice will execute operations till
+  // either time slice is over or till io is encountered, or it is completely
+  // done
 };
 
 /*
@@ -370,7 +373,8 @@ private:
   double schedLatency;
   double minGranularity;
   std::map<std::string, SchedulerProccess, SchedulerProccessComparator>
-      redBlackProcTree;
+      runningProcs;
+  std::unordered_map<std::string, SchedulerProccess> inIoProcs;
 
 public:
   CompletelyFairScheduler(int readPipeDesc) : readPipe(readPipeDesc) {}
