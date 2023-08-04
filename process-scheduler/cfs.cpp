@@ -271,6 +271,11 @@ void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
 
 // ****************** CFS Scheduler ***********************
 
+struct ProcRunResult {
+  double ranFor;
+  std::optional<int> ioEvent;
+}
+
 /*
  * CFS scheduler object will store these schduler objects and track it to
  * completion
@@ -281,7 +286,7 @@ private:
   double vruntime = 0.0;
   int weight = 1024; // default nice set to 0
   std::vector<std::string> instructions;
-  int instrcutionCounter;
+  int instructionCounter = 0;
 
   // shared readonly memory that is only initialized once and shared by all
   // objects
@@ -341,7 +346,34 @@ public:
 
   // TODO: run function that given a timeslice will execute operations till
   // either time slice is over or till io is encountered, or it is completely
-  // done
+  // return type should indicate the following:
+  // timeused
+  // somethign to show if finished
+  // if io interacted then an int for how long the io will be for, we will use
+  // this in CFS to create a timer
+  std::optional<ProcRunResult> run(double allocatedTimeSlice) {
+    if (this->instructionCounter >= this->instructions.size()) {
+      return std::nullopt;
+    }
+
+    int timeSlCounter = 0;
+    while (timeSlCounter < allocatedTimeSlice) {
+      std::string instruction = this->instructions[this->instructionCounter];
+
+      if (instruction == "noOp") {
+        // exactly this is a no op there's gonna be nothing here
+      } else {
+        // this is an io event to be simulated
+        // update the rawRuntime and do an early return
+        // get the the numero that this should be an io event for
+      }
+      this->instructionCounter++;
+      timeSlCounter++;
+    }
+
+    this->rawRuntime += timeSlCounter + 1; // avoid 0 indexing?
+    return ProcRunResult{ranFor = allocatedTimeSlice, ioEvent : std::nullopt};
+  }
 };
 
 /*
