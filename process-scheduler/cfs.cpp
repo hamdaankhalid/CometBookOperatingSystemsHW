@@ -1,6 +1,7 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <optional>
 #include <random>
 #include <sstream>
@@ -27,7 +28,7 @@ int getRandomNumber(int min, int max) {
 // ********* File Handling with RAII ****
 class FileReader {
 private:
-  std::ofstream file;
+  std::ifstream file;
 
 public:
   // Constructor: Open the file for reading
@@ -126,7 +127,7 @@ parseTill(const std::string &str, size_t currIdx, char till) {
 
   std::string collected = str.substr(currIdx, found - currIdx);
 
-  return std::make_pair(found, std::move(collected));
+  return std::make_pair(static_cast<int>(found), std::move(collected));
 }
 
 std::optional<std::vector<MockProc>> parseMockProcs(std::string filename) {
@@ -137,7 +138,7 @@ std::optional<std::vector<MockProc>> parseMockProcs(std::string filename) {
   std::vector<std::string> lines = inputFile.readStrings();
 
   std::vector<MockProc> procs;
-  for (int lineCounter = 0; lineCounter < lines.size(); lineCounter++) {
+  for (size_t lineCounter = 0; lineCounter < lines.size(); lineCounter++) {
 
     std::string line = lines[lineCounter];
 
@@ -205,7 +206,6 @@ std::optional<std::vector<MockProc>> parseMockProcs(std::string filename) {
     procs.push_back(proc);
   }
 
-  inputFile.close();
   return procs;
 }
 
@@ -286,7 +286,7 @@ private:
 
   // shared readonly memory that is only initialized once and shared by all
   // objects
-  static const int weights[40] = {
+  static constexpr int weights[40] = {
       /* -20 */ 88761, 71755, 56483, 46273, 36291,
       /* -15 */ 29154, 23254, 18705, 14949, 11916,
       /* -10 */ 9548,  7620,  6100,  4904,  3906,
@@ -300,6 +300,8 @@ private:
 public:
   SchedulerProccess(const std::string &filename) {
     // read instructions into vector from file
+    FileReader filereader(filename);
+    this->instructions = filereader.readStrings();
   }
 
   // Delete default constructor so we are always ever making this class with the

@@ -10,3 +10,5 @@ $(TARGET): $(SRCS)
 clean:
 	rm -f $(TARGET)
 
+lint:
+	clang-format -i cfs.cpp
