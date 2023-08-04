@@ -4,6 +4,7 @@
 #include <optional>
 #include <random>
 #include <sstream>
+#include <string>
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
@@ -23,6 +24,70 @@ int getRandomNumber(int min, int max) {
   return dist(gen);
 }
 
+// ********* File Handling with RAII ****
+class FileReader {
+private:
+  std::ofstream file;
+
+public:
+  // Constructor: Open the file for reading
+  FileReader(const std::string &filename) : file(filename) {
+    if (!file) {
+      throw std::runtime_error("Error opening the file.");
+    }
+  };
+
+  // Destructor: Close the file when the object goes out of scope
+  ~FileReader() {
+    if (file.is_open()) {
+      file.close();
+    }
+  }
+
+  // read file contents line separated as vector
+  std::vector<std::string> readStrings() {
+    std::vector<std::string> strings;
+    std::string line;
+
+    while (std::getline(file, line)) {
+      strings.push_back(line);
+    }
+
+    return strings;
+  }
+};
+
+class FileWriter {
+private:
+  std::ofstream file;
+
+public:
+  // Constructor: Open the file for writing
+  FileWriter(const std::string &filename) : file(filename) {
+    if (!file) {
+      throw std::runtime_error("Error opening the file.");
+    }
+  };
+
+  // Destructor: Close the file when the object goes out of scope
+  ~FileWriter() {
+    if (file.is_open()) {
+      file.close();
+    }
+  }
+
+  // read file contents line separated as vector
+  void writeVector(const std::vector<std::string> &instructions) {
+    for (std::string instruction : instructions) {
+      file << instruction << std::endl;
+    }
+  }
+};
+
+// ********************
+
+// ************ Simulator *********************
+
 class MockProc {
 public:
   std::string procName;
@@ -30,7 +95,7 @@ public:
   int totalTime;
   int interrupts;
 
-  std::vector<std::string> createInstructions() {
+  std::vector<std::string> createInstructions() const {
     std::vector<std::string> instructions;
 
     // cpu instructions
@@ -66,21 +131,15 @@ parseTill(const std::string &str, size_t currIdx, char till) {
 
 std::optional<std::vector<MockProc>> parseMockProcs(std::string filename) {
 
-  std::ifstream inputFile;
+  // TODO catch exception and return optional none
+  FileReader inputFile(filename);
 
-  inputFile.open(filename);
+  std::vector<std::string> lines = inputFile.readStrings();
 
-  if (!inputFile.is_open()) {
-    std::cout << "Error opening the file." << std::endl;
-    return std::nullopt;
-  }
-
-  std::string line;
-  std::string fileContents;
-  int lineCounter = 0;
   std::vector<MockProc> procs;
-  while (std::getline(inputFile, line)) {
-    lineCounter++;
+  for (int lineCounter = 0; lineCounter < lines.size(); lineCounter++) {
+
+    std::string line = lines[lineCounter];
 
     MockProc proc;
 
@@ -182,13 +241,8 @@ void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
     std::string filename = formatted.str();
 
     // create a file and add instructions as each line
-    std::ofstream outputFile(filename);
-
-    for (std::string instruction : instructions) {
-      outputFile << instruction << std::endl;
-    }
-
-    outputFile.close();
+    FileWriter outputFile(filename);
+    outputFile.writeVector(instructions);
 
     std::ostringstream initProcFormatted;
     initProcFormatted << "proc " << p.procName << " " << filename;
@@ -217,6 +271,84 @@ void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
   }
 }
 
+// ****************** CFS Scheduler ***********************
+
+/*
+ * CFS scheduler object will store these schduler objects and track it to
+ * completion
+ * */
+class SchedulerProccess {
+private:
+  double rawRuntime = 0.0;
+  double vruntime = 0.0;
+  int weight = 1024; // default nice set to 0
+  std::vector<std::string> instructions;
+
+  // shared readonly memory that is only initialized once and shared by all
+  // objects
+  static const int weights[40] = {
+      /* -20 */ 88761, 71755, 56483, 46273, 36291,
+      /* -15 */ 29154, 23254, 18705, 14949, 11916,
+      /* -10 */ 9548,  7620,  6100,  4904,  3906,
+      /* -5 */ 3121,   2501,  1991,  1586,  1277,
+      /* 0 */ 1024,    820,   655,   526,   423,
+      /* 5 */ 335,     272,   215,   172,   137,
+      /* 10 */ 110,    87,    70,    56,    45,
+      /* 15 */ 36,     29,    23,    18,    15,
+  };
+
+public:
+  SchedulerProccess(const std::string &filename) {
+    // read instructions into vector from file
+  }
+
+  // Delete default constructor so we are always ever making this class with the
+  // instructions loaded
+  SchedulerProccess() = delete;
+
+  void setNiceness(int howNice) {
+    // Range check just for the f of it
+    if (howNice < -20 || howNice > 20) {
+      std::cerr
+          << "Nice value for setNiceness must be between -20, and 20 inclusive."
+          << std::endl;
+      return;
+    }
+
+    // transform -20 - 20 inlusive range into 0 - 40, we can do that if we just
+    // add 20 to any incoming niceness
+    int scaledNice = howNice + 20;
+    this->weight = SchedulerProccess::weights[scaledNice];
+  }
+
+  int getWeight() const { return this->weight; }
+
+  double getVruntime() const { return this->vruntime; }
+
+  // weightSum is the sum of all the processes weights
+  double timeSlice(int schedLatency, int minGranularity, int weightSum) const {
+    double tSl = (this->weight / weightSum) * schedLatency;
+    return tSl < minGranularity ? minGranularity : tSl;
+  }
+
+  void incrVruntime(double runTimeIncr) {
+    this->rawRuntime += runTimeIncr;
+    int weight0 = SchedulerProccess::weights[20];
+    this->vruntime =
+        this->vruntime + (weight0 / this->weight) * this->rawRuntime;
+  }
+};
+
+/*
+ * Used to order schduler process in red black trees by their vruntime, and
+ * */
+struct SchedulerProccessComparator {
+  bool operator()(const SchedulerProccess &obj1,
+                  const SchedulerProccess &obj2) const {
+    return obj1.getVruntime() < obj2.getVruntime();
+  }
+};
+
 /*
  * Linux CompletelyFairScheduler implementation that runs a schduler listening
  * on pipe if it recvs data on the pipe to enqueue a process it enqueues it
@@ -228,8 +360,15 @@ void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
  * */
 class CompletelyFairScheduler {
 private:
+  // Communication members
   int readPipe;
   char buffer[100];
+
+  // Scheduler members
+  double schedLatency;
+  double minGranularity;
+  std::map<std::string, SchedulerProccess, SchedulerProccessComparator>
+      redBlackProcTree;
 
 public:
   CompletelyFairScheduler(int readPipeDesc) : readPipe(readPipeDesc) {}
@@ -261,6 +400,11 @@ public:
   }
 };
 
+// ********* Driver **********************
+
+// Kick off a child and parent proc, read simulation instructions from user
+// input story send instrcutions to child as if the parent is a user and the
+// child is the kernel
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     std::cout << "Usage: " << argv[0] << " <filename>" << std::endl;
