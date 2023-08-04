@@ -256,7 +256,7 @@ void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
       std::cout << "Wrote message to child " << initProcMessage << std::endl;
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(p.delayTime));
+    std::this_thread::sleep_for(std::chrono::milliseconds(p.delayTime));
   }
 
   std::string simulatorDoneMessage = "end";
@@ -272,9 +272,9 @@ void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
 // ****************** CFS Scheduler ***********************
 
 struct ProcRunResult {
-  double ranFor;
+  int ranFor;
   std::optional<int> ioEvent;
-}
+};
 
 /*
  * CFS scheduler object will store these schduler objects and track it to
@@ -282,6 +282,7 @@ struct ProcRunResult {
  * */
 class SchedulerProccess {
 private:
+  std::string procName;
   double rawRuntime = 0.0;
   double vruntime = 0.0;
   int weight = 1024; // default nice set to 0
@@ -302,15 +303,16 @@ private:
   };
 
 public:
-  SchedulerProccess(const std::string &filename) {
+  SchedulerProccess(const std::string &filename, const std::string& procName) {
     // read instructions into vector from file
     FileReader filereader(filename);
     this->instructions = filereader.readStrings();
+	this->procName = procName;
   }
 
   // Delete default constructor so we are always ever making this class with the
   // instructions loaded
-  SchedulerProccess() = delete;
+  // SchedulerProccess() = delete;
 
   void setNiceness(int howNice) {
     // Range check just for the f of it
@@ -344,35 +346,42 @@ public:
         this->vruntime + (weight0 / this->weight) * this->rawRuntime;
   }
 
-  // TODO: run function that given a timeslice will execute operations till
-  // either time slice is over or till io is encountered, or it is completely
-  // return type should indicate the following:
-  // timeused
-  // somethign to show if finished
-  // if io interacted then an int for how long the io will be for, we will use
-  // this in CFS to create a timer
-  std::optional<ProcRunResult> run(double allocatedTimeSlice) {
-    if (this->instructionCounter >= this->instructions.size()) {
-      return std::nullopt;
-    }
-
+  std::optional<ProcRunResult> runWithCap(int allocatedTimeSlice) {
     int timeSlCounter = 0;
-    while (timeSlCounter < allocatedTimeSlice) {
+    while (timeSlCounter < allocatedTimeSlice && this->instructionCounter < static_cast<int>(this->instructions.size())) {
       std::string instruction = this->instructions[this->instructionCounter];
 
       if (instruction == "noOp") {
         // exactly this is a no op there's gonna be nothing here
+		// but we are still calling print to do a lil log that shows how the scheduler is working
+		  std::cout << "Run inst for " << this->procName << " PIC " << this->instructionCounter << std::endl;
       } else {
         // this is an io event to be simulated
         // update the rawRuntime and do an early return
         // get the the numero that this should be an io event for
+        int spaceIdx = instruction.find(" ");
+        std::string eventTimeUnfmt =
+            instruction.substr(spaceIdx + 1, instruction.size() - spaceIdx);
+        int ioTime = std::stoi(eventTimeUnfmt);
+		
+		std::cout << "IO event occurred for " << this->procName << std::endl;
+        this->incrVruntime(timeSlCounter); // avoid 0 indexing?
+        this->instructionCounter++;
+        return ProcRunResult{timeSlCounter, ioTime};
       }
+
       this->instructionCounter++;
       timeSlCounter++;
     }
 
-    this->rawRuntime += timeSlCounter + 1; // avoid 0 indexing?
-    return ProcRunResult{ranFor = allocatedTimeSlice, ioEvent : std::nullopt};
+    if (this->instructionCounter >=
+        static_cast<int>(this->instructions.size())) {
+      return std::nullopt;
+    }
+
+	this->incrVruntime(timeSlCounter); 
+
+    return ProcRunResult{allocatedTimeSlice, std::nullopt};
   }
 };
 
@@ -421,12 +430,22 @@ public:
 
         std::cout << "Child received: " << recvdSignal << std::endl;
 
-        if (recvdSignal.compare("end")) {
+        if (recvdSignal == "end") {
           printf("CFS recvd end of proc enqueueing signal\n");
           notFinished = false;
         } else {
           // read the proc file and load instructions into memory for the
+		  std::string procName = recvdSignal.substr(6, 2); 
+		  std::string filename = recvdSignal.substr(8, recvdSignal.size() - 8);
+		  
+		  std::cout << "Creating Proc " << procName << " from filename " << filename << std::endl;
+
           // process
+		  // this runs in its own thread so we need to take a lock on the data structures
+		  // before mutating the state
+		  // TODO: Above details are tbd
+		  SchedulerProccess proc(filename, procName);
+		  proc.runWithCap(10000);
         }
 
       } else {
