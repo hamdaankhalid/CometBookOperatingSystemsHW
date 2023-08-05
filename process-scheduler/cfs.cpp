@@ -218,8 +218,8 @@ std::optional<std::vector<MockProc>> parseMockProcs(std::string filename) {
  * time "instructions" The scheduler will then send us stats about the
  * simulations end results. So think of something like the user submitting a
  * process to run to the shell, and then the kernel running it, for each cpu
- * instruction we will do  fake instruction, for each io network, we will create a
- * callback background timer that wakes up and tells the scheduler about io
+ * instruction we will do  fake instruction, for each io network, we will create
+ * a callback background timer that wakes up and tells the scheduler about io
  * return.
  * */
 void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
@@ -370,7 +370,8 @@ public:
         // but we are still calling print to do a lil log that shows how the
         // scheduler is working
         std::cout << "[HARDWARE] CPU Instruction for " << this->procName
-                  << " Program Instruction Counter " << this->instructionCounter << std::endl;
+                  << " Program Instruction Counter " << this->instructionCounter
+                  << std::endl;
       } else {
         // this is an io event to be simulated
         // update the rawRuntime and do an early return
@@ -479,7 +480,7 @@ public:
         {
           procToRun = this->runningProcs.begin()->first;
           std::lock_guard<std::mutex> lock(this->procRbtMu);
-		  // poppping off the least vRuntime proccess
+          // poppping off the least vRuntime proccess
           this->runningProcs.erase(procToRun);
           for (auto &proc : this->runningProcs) {
             weightsSum += proc.first->getWeight();
@@ -524,9 +525,9 @@ public:
           this->runningProcs[procToRun] = true;
         }
       }
-	  
-	  assert(this->inIoProcs.empty());
-	  assert(this->runningProcs.empty());
+
+      assert(this->inIoProcs.empty());
+      assert(this->runningProcs.empty());
 
       this->isThreadRunning = false;
     });
@@ -569,7 +570,8 @@ public:
         }
 
       } else {
-        std::cerr << "[OS-COMM] Child failed to read from the pipe." << std::endl;
+        std::cerr << "[OS-COMM] Child failed to read from the pipe."
+                  << std::endl;
       }
     }
 
