@@ -19,14 +19,13 @@ int getRandomNumber(int min, int max) {
   std::mt19937 gen(rd()); // Mersenne Twister 19937 engine (a widely used random
                           // number generator)
 
-  // Create a uniform distribution for integers in the range [min, max]
   std::uniform_int_distribution<int> dist(min, max);
 
-  // Generate a random number using the distribution and return it
   return dist(gen);
 }
 
 // ********* File Handling with RAII ****
+
 class FileReader {
 private:
   std::ifstream file;
@@ -209,12 +208,12 @@ std::optional<std::vector<MockProc>> parseMockProcs(std::string filename) {
 }
 
 /*
- * based on the process list create a list of commands that the scheduler will
- * interact with commands include: init procName: Simulates a user launching a
- * process cpuUse procName: Simulates the process using the cpu ioInterrupt
- * procName: Simulates the process getting IO interrupted ioReturnFromInterrupt
- * procName: Simulates the process returning from IO interrupt end procName:
- * Simulates the process finishing execution
+ * based on the mock process list create a list of commands that the scheduler
+ * will interact with commands include: init procName: Simulates a user
+ * launching a process cpuUse procName: Simulates the process using the cpu
+ * ioInterrupt procName: Simulates the process getting IO interrupted
+ * ioReturnFromInterrupt procName: Simulates the process returning from IO
+ * interrupt end procName: Simulates the process finishing execution
  *
  * Maybe the scheduler listens to a user, user sends processes with details over
  * time "instructions" The scheduler will then send us stats about the
@@ -367,7 +366,7 @@ public:
         // exactly this is a no op there's gonna be nothing here
         // but we are still calling print to do a lil log that shows how the
         // scheduler is working
-        std::cout << "Run inst for " << this->procName << " PIC "
+        std::cout << "Run CPU inst for " << this->procName << " virtual PIC "
                   << this->instructionCounter << std::endl;
       } else {
         // this is an io event to be simulated
@@ -403,9 +402,9 @@ public:
  * Used to order schduler process in red black trees by their vruntime, and
  * */
 struct SchedulerProccessComparator {
-  bool operator()(const SchedulerProccess &obj1,
-                  const SchedulerProccess &obj2) const {
-    return obj1.getVruntime() < obj2.getVruntime();
+  bool operator()(const std::shared_ptr<SchedulerProccess> obj1,
+                  const std::shared_ptr<SchedulerProccess> obj2) const {
+    return obj1->getVruntime() < obj2->getVruntime();
   }
 };
 
@@ -420,22 +419,23 @@ struct SchedulerProccessComparator {
  * */
 class CompletelyFairScheduler {
 private:
-  // Communication members
+  // IPC Communication related members
   int readPipe;
   char buffer[100];
 
-  // Scheduler members
-  double schedLatency;
-  double minGranularity;
-  std::map<std::string, std::shared_ptr<SchedulerProccess>,
+  // Scheduler Algorithm members
+  double schedLatency = 45;
+  double minGranularity = 30;
+  std::map<std::shared_ptr<SchedulerProccess>, bool,
            SchedulerProccessComparator>
       runningProcs;
   std::unordered_map<std::string, std::shared_ptr<SchedulerProccess>> inIoProcs;
 
-  // schedulerTaskThreadId
+  // Concurrency members
   std::thread schedulerThread;
   bool isThreadRunning = false;
-  std::mutex myMutex;
+  std::mutex procRbtMu;
+  std::mutex ioProcsMu;
 
 public:
   CompletelyFairScheduler(int readPipeDesc) : readPipe(readPipeDesc) {}
@@ -455,8 +455,10 @@ public:
           }
 
           std::this_thread::sleep_for(std::chrono::seconds(1));
+
           std::cout << "Scheduler idling " << idleFor << " 'th' time."
                     << std::endl;
+
           idleFor++;
           continue;
         }
@@ -464,31 +466,58 @@ public:
         // reset our idleFor counter
         idleFor = 0;
 
-        SchedulerProccess procToRun = null;
+		std::shared_ptr<SchedulerProccess> procToRun = nullptr;
 
+        int weightsSum = 0;
+	
         // create a block to force lock to be released via RAII
         {
           procToRun = this->runningProcs.begin()->first;
-          std::lock_guard<std::mutex> lock(myMutex);
-          this->runningProcs.erase(procToRun.getProcName());
-          // TODO: calc weight sum
+          std::lock_guard<std::mutex> lock(this->procRbtMu);
+          this->runningProcs.erase(procToRun);
+          // TODO: Pretty sure I am wrong about this
+          for (auto &proc : this->runningProcs) {
+            weightsSum += proc.first->getWeight();
+          }
+		  weightsSum += procToRun->getWeight();
+        }
+		
+		std::cout << "DEBUG: " << weightsSum << std::endl;
+	
+        int runFor = procToRun->timeSlice(this->schedLatency,
+                                          this->minGranularity, weightsSum);
+		
+		std::cout << "Runnning Proc for " << runFor << std::endl;
+	
+        std::optional<ProcRunResult> result = procToRun->runWithCap(runFor);
+
+        if (!result.has_value()) {
+          std::cout << "Proc " << procToRun->getProcName()
+                    << " reported completion to scheduler." << std::endl;
+          continue;
         }
 
-        int weightsSum =
-            10; // TODO: sum of all the weights of the processes in our
-        int runFor = procToRun.timeSlice(this->schedLatency,
-                                         this->minGranularity, weightsSum);
+        int ranFor = result.value().ranFor;
+        procToRun->incrVruntime(ranFor);
 
-        std::optional<ProcRunResult> result = procToRun.runWithCap(runFor);
-        // TODO:
-        // if the proc finishes remove it from map
-        // if the proc finished the time for it to run, then just put it back in
-        // the map. else if an IO event occurs remove the proc from the map and
-        // place it in inIoProcs simulate a timer for IO to end, and have it
-        // remove proc from inIoProcs to back into unordered_map
+        std::optional<int> ioEvent = result.value().ioEvent;
+
+        if (ioEvent.has_value()) {
+          std::lock_guard<std::mutex> lock(this->ioProcsMu);
+          this->inIoProcs[procToRun->getProcName()] = procToRun;
+          // TODO: create a timer thread that will run in background and when it
+          // finishes it will remove
+
+          // this proc from io procs map and place it in procs to run
+        } else {
+          std::lock_guard<std::mutex> lock(this->procRbtMu);
+          this->runningProcs[procToRun] = true;
+        }
       }
+
       this->isThreadRunning = false;
     });
+
   }
 
   void listen() {
@@ -514,25 +543,11 @@ public:
 
           // use blocks to release locks via RAII
           {
-            std::lock_guard<std::mutex> lock(myMutex);
+            std::lock_guard<std::mutex> lock(this->procRbtMu);
             std::shared_ptr<SchedulerProccess> proc =
                 std::make_shared<SchedulerProccess>(filename, procName);
-            this->runningProcs[procName] = proc;
+            this->runningProcs[proc] = true;
           }
-
-          // acquire lock on unordered_map create a sharedptr and store it
-          // release lock
-
-          /* Back when things were FIFO based
-  SchedulerProccess proc(filename, procName);
-  std::optional<ProcRunResult> procRun = proc.runWithCap(10000);
-  if (!procRun.has_value()) {
-    std::cout << "Process " << procName << " Finished" << std::endl;
-  } else {
-    std::cout << "Process IO " << procName << ": " << procRun.value()
-              << std::endl;
-  }
-          */
         }
 
       } else {
@@ -542,6 +557,7 @@ public:
 
     // run a cleanup such as waiting on CFS to finish existing jobs
     if (this->isThreadRunning) {
+	  std::cout << "Simulator sent end of process requests signal. Waiting for background process to cleanup." << std::endl;
       this->schedulerThread.join();
     }
   }
@@ -579,7 +595,9 @@ int main(int argc, char *argv[]) {
     std::cout << "CFS Scheduler Started" << std::endl;
 
     CompletelyFairScheduler cfs(pipefd[0]);
-    // TODO: For background uncomment -> cfs.startScheduler();
+	// non blocking
+    cfs.startScheduler();
+	// blocking
     cfs.listen();
 
     close(pipefd[0]); // close the read end at the end
