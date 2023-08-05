@@ -99,13 +99,13 @@ public:
 
     // cpu instructions
     for (int i = 0; i < totalTime; i++) {
-      instructions.push_back("noOp");
+      instructions.push_back("cpu");
     }
 
     // io instructions
     for (int i = 0; i < interrupts; i++) {
       int idx = getRandomNumber(0, totalTime);
-      int ioTime = getRandomNumber(0, 200);
+      int ioTime = getRandomNumber(0, 10);
       std::ostringstream formatted;
       formatted << "io " << ioTime;
       std::string result = formatted.str();
@@ -130,7 +130,6 @@ parseTill(const std::string &str, size_t currIdx, char till) {
 
 std::optional<std::vector<MockProc>> parseMockProcs(std::string filename) {
 
-  // TODO catch exception and return optional none
   FileReader inputFile(filename);
 
   std::vector<std::string> lines = inputFile.readStrings();
@@ -246,6 +245,11 @@ void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
     initProcFormatted << "proc " << p.procName << " " << filename;
     std::string initProcMessage = initProcFormatted.str();
 
+    std::cout << "[SIMULATOR] perform a delay on delivery " << p.delayTime
+              << std::endl;
+
+    std::this_thread::sleep_for(std::chrono::seconds(p.delayTime));
+
     ssize_t bytesWritten =
         write(writePipe, initProcMessage.c_str(), initProcMessage.length());
     if (bytesWritten < 0) {
@@ -253,10 +257,9 @@ void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
           << "Simulator failed to write message to CFS Scheduler Child Proc"
           << std::endl;
     } else {
-      std::cout << "Wrote message to child " << initProcMessage << std::endl;
+      std::cout << "[SIMULATOR] Wrote message to child " << initProcMessage
+                << std::endl;
     }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(p.delayTime));
   }
 
   std::string simulatorDoneMessage = "end";
@@ -362,12 +365,12 @@ public:
                static_cast<int>(this->instructions.size())) {
       std::string instruction = this->instructions[this->instructionCounter];
 
-      if (instruction == "noOp") {
+      if (instruction == "cpu") {
         // exactly this is a no op there's gonna be nothing here
         // but we are still calling print to do a lil log that shows how the
         // scheduler is working
-        std::cout << "Run CPU inst for " << this->procName << " virtual PIC "
-                  << this->instructionCounter << std::endl;
+        std::cout << "[HARDWARE] CPU Instruction for " << this->procName
+                  << " Program Instruction Counter " << this->instructionCounter << std::endl;
       } else {
         // this is an io event to be simulated
         // update the rawRuntime and do an early return
@@ -377,7 +380,8 @@ public:
             instruction.substr(spaceIdx + 1, instruction.size() - spaceIdx);
         int ioTime = std::stoi(eventTimeUnfmt);
 
-        std::cout << "IO event occurred for " << this->procName << std::endl;
+        std::cout << "[HARDWARE] IO event occurred for " << this->procName
+                  << " for " << ioTime << " time " << std::endl;
         this->incrVruntime(timeSlCounter); // avoid 0 indexing?
         this->instructionCounter++;
         return ProcRunResult{timeSlCounter, ioTime};
@@ -413,8 +417,8 @@ struct SchedulerProccessComparator {
  * on pipe if it recvs data on the pipe to enqueue a process it enqueues it
  * internally. On a separate thread we handle the running of the enqueued
  * processes. When a process is enqueued we load its instructions into memory.
- * When it is a processes turn if we get a noOp we just do a redundant loop (a
- * no-op), if it is an IO event we put the process in a vector and run a timer
+ * When it is a processes turn if we get a cpu we just do a fake instruction,
+ * if it is an IO event we put the process in a vector and run a timer
  * to evict it when it the timer goes off.
  * */
 class CompletelyFairScheduler {
@@ -448,15 +452,16 @@ public:
       while (true) {
         if (this->runningProcs.empty()) {
           if (idleFor > 60) {
-            std::cout << "Scheduler idled for 60 seconds before deciding to "
-                         "kill itself."
-                      << std::endl;
+            std::cout
+                << "[OS] Scheduler idled for 60 seconds before deciding to "
+                   "kill itself."
+                << std::endl;
             return;
           }
 
           std::this_thread::sleep_for(std::chrono::seconds(1));
 
-          std::cout << "Scheduler idling " << idleFor << " 'th' time."
+          std::cout << "[OS] Scheduler idling " << idleFor << " 'th' time."
                     << std::endl;
 
           idleFor++;
@@ -466,33 +471,31 @@ public:
         // reset our idleFor counter
         idleFor = 0;
 
-		std::shared_ptr<SchedulerProccess> procToRun = nullptr;
+        std::shared_ptr<SchedulerProccess> procToRun = nullptr;
 
         int weightsSum = 0;
-	
+
         // create a block to force lock to be released via RAII
         {
           procToRun = this->runningProcs.begin()->first;
           std::lock_guard<std::mutex> lock(this->procRbtMu);
           this->runningProcs.erase(procToRun);
-          // TODO: Pretty sure I am wrong about this
           for (auto &proc : this->runningProcs) {
             weightsSum += proc.first->getWeight();
           }
-		  weightsSum += procToRun->getWeight();
+          weightsSum += procToRun->getWeight();
         }
-		
-		std::cout << "DEBUG: " << weightsSum << std::endl;
-	
+
         int runFor = procToRun->timeSlice(this->schedLatency,
                                           this->minGranularity, weightsSum);
-		
-		std::cout << "Runnning Proc for " << runFor << std::endl;
-	
+
+        std::cout << "[OS] Choosing to run " << procToRun->getProcName()
+                  << " Proc for " << runFor << std::endl;
+
         std::optional<ProcRunResult> result = procToRun->runWithCap(runFor);
 
         if (!result.has_value()) {
-          std::cout << "Proc " << procToRun->getProcName()
+          std::cout << "[OS] Proc " << procToRun->getProcName()
                     << " reported completion to scheduler." << std::endl;
           continue;
         }
@@ -505,10 +508,16 @@ public:
         if (ioEvent.has_value()) {
           std::lock_guard<std::mutex> lock(this->ioProcsMu);
           this->inIoProcs[procToRun->getProcName()] = procToRun;
-          // TODO: create a timer thread that will run in background and when it
-          // finishes it will remove
 
-          // this proc from io procs map and place it in procs to run
+          std::thread bgTimer = std::thread([this, procToRun, ioEvent]() {
+            std::this_thread::sleep_for(std::chrono::seconds(ioEvent.value()));
+            std::lock_guard<std::mutex> ioLock(this->ioProcsMu);
+            this->inIoProcs.erase(procToRun->getProcName());
+            std::lock_guard<std::mutex> procLock(this->procRbtMu);
+            this->runningProcs[procToRun] = true;
+          });
+
+          bgTimer.detach();
         } else {
           std::lock_guard<std::mutex> lock(this->procRbtMu);
           this->runningProcs[procToRun] = true;
@@ -517,7 +526,6 @@ public:
 
       this->isThreadRunning = false;
     });
-
   }
 
   void listen() {
@@ -528,36 +536,45 @@ public:
       if (bytesRead > 0) {
         std::string recvdSignal(this->buffer, bytesRead);
 
-        std::cout << "Child received: " << recvdSignal << std::endl;
-
         if (recvdSignal == "end") {
-          printf("CFS recvd end of proc enqueueing signal\n");
+          printf("[OS] Scheduler CFS recvd end of proc enqueueing signal\n");
           notFinished = false;
         } else {
           // read the proc file and load instructions into memory for the
-          std::string procName = recvdSignal.substr(6, 2);
+          std::string procName = recvdSignal.substr(5, 2);
           std::string filename = recvdSignal.substr(8, recvdSignal.size() - 8);
-
-          std::cout << "Creating Proc " << procName << " from filename "
-                    << filename << std::endl;
 
           // use blocks to release locks via RAII
           {
             std::lock_guard<std::mutex> lock(this->procRbtMu);
             std::shared_ptr<SchedulerProccess> proc =
                 std::make_shared<SchedulerProccess>(filename, procName);
+
+            // For every 3rd process let's change its niceness :)
+            if (std::stoi(procName.substr(1, 1)) % 3 == 0) {
+              int howNice = getRandomNumber(-20, 20);
+              proc->setNiceness(howNice);
+              std::cout << "[SIMULATOR] set the niceness of " << procName
+                        << " to " << howNice << std::endl;
+            }
+
             this->runningProcs[proc] = true;
+            std::cout << "[OS] Creating Proc Entry for " << procName
+                      << " from filename " << filename << std::endl;
           }
         }
 
       } else {
-        std::cerr << "Child failed to read from the pipe." << std::endl;
+        std::cerr << "[OS] Child failed to read from the pipe." << std::endl;
       }
     }
 
     // run a cleanup such as waiting on CFS to finish existing jobs
     if (this->isThreadRunning) {
-	  std::cout << "Simulator sent end of process requests signal. Waiting for background process to cleanup." << std::endl;
+      std::cout << "[OS] User Simulator sent end of process requests signal. "
+                   "Waiting for "
+                   "background process to cleanup."
+                << std::endl;
       this->schedulerThread.join();
     }
   }
@@ -592,12 +609,12 @@ int main(int argc, char *argv[]) {
     close(pipefd[1]); // close the write end
 
     // run the CFS scheduler listening to the read end for commands
-    std::cout << "CFS Scheduler Started" << std::endl;
+    std::cout << "[OS] CFS Scheduler Started" << std::endl;
 
     CompletelyFairScheduler cfs(pipefd[0]);
-	// non blocking
+    // non blocking
     cfs.startScheduler();
-	// blocking
+    // blocking
     cfs.listen();
 
     close(pipefd[0]); // close the read end at the end
@@ -625,9 +642,9 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    std::cout
-        << "Child process (CFS Scheduler) has terminated. Simulator Exiting."
-        << std::endl;
+    std::cout << "[SIMULATOR] Child process (CFS Scheduler) has terminated. "
+                 "Simulator Exiting."
+              << std::endl;
   }
 
   return 0;
