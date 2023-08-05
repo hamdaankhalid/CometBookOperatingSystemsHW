@@ -20,3 +20,7 @@ proc_name, delay_in_arrival_from_last, total_time, num_randomly_timed_io_interru
 *** To redirect logs ***
 1. touch <logfile name>
 2. ./cfs ./proc_simulation_1.txt > <logfile name>
+
+*** To analyze scheduler execution ***
+1. make analyze
+2. ./analyze <logfile>

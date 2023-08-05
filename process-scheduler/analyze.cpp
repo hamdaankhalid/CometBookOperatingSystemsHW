@@ -79,10 +79,6 @@ void printReport(const std::string &logfilename) {
 
     std::string procName = getProcName(line);
 
-    if (procName == "") {
-      continue;
-    }
-
     Event event;
     event.eventType = "";
     event.procName = procName;
@@ -96,6 +92,7 @@ void printReport(const std::string &logfilename) {
         event.eventType = "Finished";
       } else if (subStringSearch(line, "idling")) {
         event.eventType = "Idling";
+        event.procName = "Scheduler";
       }
     } else if (logType == "HARDWARE") {
       if (subStringSearch(line, "CPU")) {
@@ -106,7 +103,7 @@ void printReport(const std::string &logfilename) {
     }
 
     // monkey brain
-    if (event.eventType != "") {
+    if (event.eventType != "" && event.procName != "") {
       events.push_back(event);
     }
   }
