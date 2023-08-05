@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <optional>
 #include <random>
 #include <sstream>
@@ -274,6 +275,13 @@ void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
 struct ProcRunResult {
   int ranFor;
   std::optional<int> ioEvent;
+
+  // overload for std::cout
+  friend std::ostream &operator<<(std::ostream &os, const ProcRunResult &res) {
+    int ioEvent = res.ioEvent.has_value() ? res.ioEvent.value() : -1;
+    os << "ranFor: " << res.ranFor << ", ioEvent: " << ioEvent;
+    return os;
+  }
 };
 
 /*
@@ -303,16 +311,18 @@ private:
   };
 
 public:
-  SchedulerProccess(const std::string &filename, const std::string& procName) {
+  SchedulerProccess(const std::string &filename, const std::string &procName) {
     // read instructions into vector from file
     FileReader filereader(filename);
     this->instructions = filereader.readStrings();
-	this->procName = procName;
+    this->procName = procName;
   }
 
   // Delete default constructor so we are always ever making this class with the
   // instructions loaded
-  // SchedulerProccess() = delete;
+  SchedulerProccess() = delete;
+
+  std::string getProcName() { return this->procName; }
 
   void setNiceness(int howNice) {
     // Range check just for the f of it
@@ -348,13 +358,17 @@ public:
 
   std::optional<ProcRunResult> runWithCap(int allocatedTimeSlice) {
     int timeSlCounter = 0;
-    while (timeSlCounter < allocatedTimeSlice && this->instructionCounter < static_cast<int>(this->instructions.size())) {
+    while (timeSlCounter < allocatedTimeSlice &&
+           this->instructionCounter <
+               static_cast<int>(this->instructions.size())) {
       std::string instruction = this->instructions[this->instructionCounter];
 
       if (instruction == "noOp") {
         // exactly this is a no op there's gonna be nothing here
-		// but we are still calling print to do a lil log that shows how the scheduler is working
-		  std::cout << "Run inst for " << this->procName << " PIC " << this->instructionCounter << std::endl;
+        // but we are still calling print to do a lil log that shows how the
+        // scheduler is working
+        std::cout << "Run inst for " << this->procName << " PIC "
+                  << this->instructionCounter << std::endl;
       } else {
         // this is an io event to be simulated
         // update the rawRuntime and do an early return
@@ -363,8 +377,8 @@ public:
         std::string eventTimeUnfmt =
             instruction.substr(spaceIdx + 1, instruction.size() - spaceIdx);
         int ioTime = std::stoi(eventTimeUnfmt);
-		
-		std::cout << "IO event occurred for " << this->procName << std::endl;
+
+        std::cout << "IO event occurred for " << this->procName << std::endl;
         this->incrVruntime(timeSlCounter); // avoid 0 indexing?
         this->instructionCounter++;
         return ProcRunResult{timeSlCounter, ioTime};
@@ -379,7 +393,7 @@ public:
       return std::nullopt;
     }
 
-	this->incrVruntime(timeSlCounter); 
+    this->incrVruntime(timeSlCounter);
 
     return ProcRunResult{allocatedTimeSlice, std::nullopt};
   }
@@ -413,14 +427,70 @@ private:
   // Scheduler members
   double schedLatency;
   double minGranularity;
-  std::map<std::string, SchedulerProccess, SchedulerProccessComparator>
+  std::map<std::string, std::shared_ptr<SchedulerProccess>,
+           SchedulerProccessComparator>
       runningProcs;
-  std::unordered_map<std::string, SchedulerProccess> inIoProcs;
+  std::unordered_map<std::string, std::shared_ptr<SchedulerProccess>> inIoProcs;
+
+  // schedulerTaskThreadId
+  std::thread schedulerThread;
+  bool isThreadRunning = false;
+  std::mutex myMutex;
 
 public:
   CompletelyFairScheduler(int readPipeDesc) : readPipe(readPipeDesc) {}
 
-  void runScheduler() {
+  void startScheduler() {
+    this->schedulerThread = std::thread([this]() {
+      this->isThreadRunning = true;
+
+      int idleFor = 0;
+      while (true) {
+        if (this->runningProcs.empty()) {
+          if (idleFor > 60) {
+            std::cout << "Scheduler idled for 60 seconds before deciding to "
+                         "kill itself."
+                      << std::endl;
+            return;
+          }
+
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+          std::cout << "Scheduler idling " << idleFor << " 'th' time."
+                    << std::endl;
+          idleFor++;
+          continue;
+        }
+
+        // reset our idleFor counter
+        idleFor = 0;
+
+        SchedulerProccess procToRun = null;
+
+        // create a block to force lock to be released via RAII
+        {
+          procToRun = this->runningProcs.begin()->first;
+          std::lock_guard<std::mutex> lock(myMutex);
+          this->runningProcs.erase(procToRun.getProcName());
+          // TODO: calc weight sum
+        }
+
+        int weightsSum = 10; // TODO: sum of all the weights of the processes in our
+        int runFor = procToRun.timeSlice(this->schedLatency,
+                                             this->minGranularity, weightsSum);
+
+		std::optional<ProcRunResult> result = procToRun.runWithCap(runFor);
+		// TODO:
+        // if the proc finishes remove it from map
+        // if the proc finished the time for it to run, then just put it back in
+        // the map. else if an IO event occurs remove the proc from the map and
+        // place it in inIoProcs simulate a timer for IO to end, and have it
+        // remove proc from inIoProcs to back into unordered_map
+      }
+      this->isThreadRunning = false;
+    });
+  }
+
+  void listen() {
     bool notFinished = true;
     while (notFinished) {
       ssize_t bytesRead =
@@ -435,17 +505,32 @@ public:
           notFinished = false;
         } else {
           // read the proc file and load instructions into memory for the
-		  std::string procName = recvdSignal.substr(6, 2); 
-		  std::string filename = recvdSignal.substr(8, recvdSignal.size() - 8);
-		  
-		  std::cout << "Creating Proc " << procName << " from filename " << filename << std::endl;
+          std::string procName = recvdSignal.substr(6, 2);
+          std::string filename = recvdSignal.substr(8, recvdSignal.size() - 8);
 
-          // process
-		  // this runs in its own thread so we need to take a lock on the data structures
-		  // before mutating the state
-		  // TODO: Above details are tbd
-		  SchedulerProccess proc(filename, procName);
-		  proc.runWithCap(10000);
+          std::cout << "Creating Proc " << procName << " from filename "
+                    << filename << std::endl;
+			
+		  // use blocks to release locks via RAII
+		  {
+		    std::lock_guard<std::mutex> lock(myMutex);
+			std::shared_ptr<SchedulerProccess> proc = std::make_shared<SchedulerProccess>(filename, procName);
+			this->runningProcs[procName] = proc;
+		  }
+	
+		  // acquire lock on unordered_map create a sharedptr and store it
+		  // release lock
+		  
+		  /* Back when things were FIFO based
+          SchedulerProccess proc(filename, procName);
+          std::optional<ProcRunResult> procRun = proc.runWithCap(10000);
+          if (!procRun.has_value()) {
+            std::cout << "Process " << procName << " Finished" << std::endl;
+          } else {
+            std::cout << "Process IO " << procName << ": " << procRun.value()
+                      << std::endl;
+          }
+		  */
         }
 
       } else {
@@ -454,6 +539,9 @@ public:
     }
 
     // run a cleanup such as waiting on CFS to finish existing jobs
+    if (this->isThreadRunning) {
+      this->schedulerThread.join();
+    }
   }
 };
 
@@ -489,7 +577,8 @@ int main(int argc, char *argv[]) {
     std::cout << "CFS Scheduler Started" << std::endl;
 
     CompletelyFairScheduler cfs(pipefd[0]);
-    cfs.runScheduler();
+    // TODO: For background uncomment -> cfs.startScheduler();
+    cfs.listen();
 
     close(pipefd[0]); // close the read end at the end
   } else {
