@@ -474,12 +474,13 @@ public:
           // TODO: calc weight sum
         }
 
-        int weightsSum = 10; // TODO: sum of all the weights of the processes in our
+        int weightsSum =
+            10; // TODO: sum of all the weights of the processes in our
         int runFor = procToRun.timeSlice(this->schedLatency,
-                                             this->minGranularity, weightsSum);
+                                         this->minGranularity, weightsSum);
 
-		std::optional<ProcRunResult> result = procToRun.runWithCap(runFor);
-		// TODO:
+        std::optional<ProcRunResult> result = procToRun.runWithCap(runFor);
+        // TODO:
         // if the proc finishes remove it from map
         // if the proc finished the time for it to run, then just put it back in
         // the map. else if an IO event occurs remove the proc from the map and
@@ -510,27 +511,28 @@ public:
 
           std::cout << "Creating Proc " << procName << " from filename "
                     << filename << std::endl;
-			
-		  // use blocks to release locks via RAII
-		  {
-		    std::lock_guard<std::mutex> lock(myMutex);
-			std::shared_ptr<SchedulerProccess> proc = std::make_shared<SchedulerProccess>(filename, procName);
-			this->runningProcs[procName] = proc;
-		  }
-	
-		  // acquire lock on unordered_map create a sharedptr and store it
-		  // release lock
-		  
-		  /* Back when things were FIFO based
-          SchedulerProccess proc(filename, procName);
-          std::optional<ProcRunResult> procRun = proc.runWithCap(10000);
-          if (!procRun.has_value()) {
-            std::cout << "Process " << procName << " Finished" << std::endl;
-          } else {
-            std::cout << "Process IO " << procName << ": " << procRun.value()
-                      << std::endl;
+
+          // use blocks to release locks via RAII
+          {
+            std::lock_guard<std::mutex> lock(myMutex);
+            std::shared_ptr<SchedulerProccess> proc =
+                std::make_shared<SchedulerProccess>(filename, procName);
+            this->runningProcs[procName] = proc;
           }
-		  */
+
+          // acquire lock on unordered_map create a sharedptr and store it
+          // release lock
+
+          /* Back when things were FIFO based
+  SchedulerProccess proc(filename, procName);
+  std::optional<ProcRunResult> procRun = proc.runWithCap(10000);
+  if (!procRun.has_value()) {
+    std::cout << "Process " << procName << " Finished" << std::endl;
+  } else {
+    std::cout << "Process IO " << procName << ": " << procRun.value()
+              << std::endl;
+  }
+          */
         }
 
       } else {
