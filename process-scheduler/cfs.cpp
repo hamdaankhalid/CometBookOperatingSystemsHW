@@ -105,7 +105,7 @@ public:
     // io instructions
     for (int i = 0; i < interrupts; i++) {
       int idx = getRandomNumber(0, totalTime);
-      int ioTime = getRandomNumber(0, 10);
+      int ioTime = getRandomNumber(0, 3);
       std::ostringstream formatted;
       formatted << "io " << ioTime;
       std::string result = formatted.str();
@@ -524,6 +524,9 @@ public:
           this->runningProcs[procToRun] = true;
         }
       }
+	  
+	  assert(this->inIoProcs.empty());
+	  assert(this->runningProcs.empty());
 
       this->isThreadRunning = false;
     });
@@ -566,7 +569,7 @@ public:
         }
 
       } else {
-        std::cerr << "[OS] Child failed to read from the pipe." << std::endl;
+        std::cerr << "[OS-COMM] Child failed to read from the pipe." << std::endl;
       }
     }
 
