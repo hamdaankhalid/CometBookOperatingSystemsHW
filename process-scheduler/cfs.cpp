@@ -214,12 +214,12 @@ std::optional<std::vector<MockProc>> parseMockProcs(std::string filename) {
  * ioReturnFromInterrupt procName: Simulates the process returning from IO
  * interrupt end procName: Simulates the process finishing execution
  *
- * Maybe the scheduler listens to a user, user sends processes with details over
+ * the scheduler listens to a user, user sends processes with details over
  * time "instructions" The scheduler will then send us stats about the
  * simulations end results. So think of something like the user submitting a
  * process to run to the shell, and then the kernel running it, for each cpu
- * instruction we will do  no-op loop, for each io network, we will create a
- * callback background timer that wakes up and tells the schduler about io
+ * instruction we will do  fake instruction, for each io network, we will create a
+ * callback background timer that wakes up and tells the scheduler about io
  * return.
  * */
 void createSimulationStory(std::vector<MockProc> procs, int writePipe) {
@@ -479,6 +479,7 @@ public:
         {
           procToRun = this->runningProcs.begin()->first;
           std::lock_guard<std::mutex> lock(this->procRbtMu);
+		  // poppping off the least vRuntime proccess
           this->runningProcs.erase(procToRun);
           for (auto &proc : this->runningProcs) {
             weightsSum += proc.first->getWeight();
