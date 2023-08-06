@@ -1,8 +1,78 @@
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <regex>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
+
+struct __attribute__((packed)) BmpHeader {
+  char signature[2] = {'B', 'M'};
+  std::uint32_t fileSize;
+  std::uint32_t reserved = 0; // unused
+  std::uint32_t dataOffset =
+      54; // Update this value to reflect the correct offset.
+};
+
+struct __attribute__((packed)) BmpInfoHeader {
+  std::uint32_t size = 40;
+  std::int32_t width;  // Use int32_t to handle negative width (if needed).
+  std::int32_t height; // Use int32_t to handle negative height (if needed).
+  std::uint16_t planes = 1;
+  std::uint16_t bitsPerPixel = 24; // RGB pixel-based data
+  std::uint32_t compression = 0;
+  std::uint32_t imageSize = 0;
+  std::int32_t horizontalResolution; // Use int32_t to handle negative
+                                     // resolution (if needed).
+  std::int32_t verticalResolution; // Use int32_t to handle negative resolution
+                                   // (if needed).
+  std::uint32_t colorsUsed = 0;
+  std::uint32_t importantColors = 0;
+};
+
+struct __attribute__((packed)) Pixel {
+  std::uint8_t blue;
+  std::uint8_t green;
+  std::uint8_t red;
+};
+
+class BmpFile {
+private:
+  BmpHeader header;
+  BmpInfoHeader infoHeader;
+  std::vector<Pixel> bmp;
+
+public:
+  BmpFile(std::vector<Pixel> bitmap, std::int32_t width, std::int32_t height)
+      : bmp(std::move(bitmap)) {
+    infoHeader.width = width;
+    infoHeader.height = height;
+
+    // Calculate filesize
+    std::size_t sizeOfBmpArr = sizeof(Pixel) * bmp.size();
+    header.fileSize = sizeof(BmpHeader) + sizeof(BmpInfoHeader) + sizeOfBmpArr;
+  }
+
+  void serializeToFile(const std::string &filename) {
+    std::ofstream outFile(filename, std::ios::binary);
+    if (!outFile) {
+      std::cerr << "Error opening file for writing." << std::endl;
+      return;
+    }
+
+    outFile.write(reinterpret_cast<const char *>(&this->header),
+                  sizeof(BmpHeader));
+    outFile.write(reinterpret_cast<const char *>(&this->infoHeader),
+                  sizeof(BmpInfoHeader));
+    outFile.write(reinterpret_cast<const char *>(this->bmp.data()),
+                  this->bmp.size() * sizeof(Pixel));
+
+    outFile.close();
+  }
+};
 
 struct Event {
   std::string
@@ -43,6 +113,21 @@ std::string getProcName(const std::string &line) {
   }
 }
 
+uint8_t getRandomNumber(uint8_t min, uint8_t max) {
+  std::random_device rd;  // Random device to seed the random number engine
+  std::mt19937 gen(rd()); // Mersenne Twister 19937 engine (a widely used random
+                          // number generator)
+
+  std::uniform_int_distribution<uint8_t> dist(min, max);
+
+  return dist(gen);
+}
+
+void printColor(int r, int g, int b, const std::string &text) {
+  std::cout << "\033[38;2;" << r << ";" << g << ";" << b << "m" << text
+            << "\033[0m";
+}
+
 /*
  * Given a file go through the log contents and create
  * a visual report of what proccesses were run over the lif when
@@ -67,7 +152,6 @@ void printReport(const std::string &logfilename) {
   while (std::getline(file, fline)) {
     fileContents.push_back(fline);
   }
-
   file.close();
 
   for (const std::string &line : fileContents) {
@@ -108,16 +192,89 @@ void printReport(const std::string &logfilename) {
     }
   }
 
-  std::cout << " ------------- Finsihed log processing --------------"
+  unsigned int rows = 600;
+  unsigned int cols = 2000;
+
+  Pixel white;
+  white.red = 255;
+  white.green = 255;
+  white.blue = 255;
+
+  std::vector<std::vector<Pixel>> image(rows, std::vector<Pixel>(cols, white));
+
+  std::unordered_map<std::string, Pixel> procColors;
+
+  // size of each block the log represents
+  // block dimension: 5, 10
+  // we start with initial padding
+
+  int heightBlock = 50;
+  int widthBlock = 3;
+
+  std::pair<int, int> lastLeftTop =
+      std::make_pair(200, 20); // initial padding showing y, x
+
+  for (const Event &ev : events) {
+    // based on event type and proc name make a block of pixels and send that
+    std::unordered_map<std::string, Pixel>::iterator it =
+        procColors.find(ev.procName);
+
+    if (it == procColors.end()) {
+      Pixel rndm;
+      rndm.red = getRandomNumber(0, 255);
+      rndm.green = getRandomNumber(0, 255);
+      rndm.blue = getRandomNumber(0, 255);
+
+      procColors[ev.procName] = rndm;
+    }
+    Pixel colorForProc = procColors[ev.procName];
+
+    // draw the block
+    for (int i = lastLeftTop.first; i < lastLeftTop.first + heightBlock; i++) {
+      for (int j = lastLeftTop.second; j < lastLeftTop.second + widthBlock;
+           j++) {
+        image[i][j] = colorForProc;
+      }
+    }
+
+    lastLeftTop.second += widthBlock;
+  }
+
+  // flatten out image matrix
+  std::vector<Pixel> flatBmp;
+  for (std::vector<Pixel> row : image) {
+    for (Pixel px : row) {
+      flatBmp.push_back(px);
+    }
+  }
+
+  // now that we have the image we can try to create bmp file
+  BmpFile visualFile(flatBmp, cols, rows);
+
+  visualFile.serializeToFile("scheduler_visual.bmp");
+
+  std::cout << " ------------- Finished log processing --------------"
             << std::endl;
 
   std::cout << "************* Scheduler Execution Report *******************"
             << std::endl;
 
-  for (const Event &ev : events) {
-    std::cout << "{ " << ev.eventType << ", " << ev.procName << " }"
-              << std::endl;
+  std::cout << "Graph File: scheduler_visual.bmp" << std::endl;
+
+  std::cout << "########## Color Legend ##########" << std::endl;
+
+  std::unordered_map<std::string, Pixel>::iterator it;
+
+  // Iterate over the map and print values
+  for (it = procColors.begin(); it != procColors.end(); ++it) {
+    std::cout << "PROC: " << it->first << " ";
+    printColor(static_cast<std::uint8_t>(it->second.red),
+               static_cast<std::uint8_t>(it->second.green),
+               static_cast<std::uint8_t>(it->second.blue), "COLOR");
+    std::cout << "\n";
   }
+
+  std::cout << "#########################" << std::endl;
 }
 
 int main(int argc, char *argv[]) {

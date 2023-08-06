@@ -1,23 +1,13 @@
 cpu
-io 1
 cpu
 io 3
-cpu
-io 3
-cpu
-cpu
-io 1
-cpu
-cpu
-cpu
-cpu
-cpu
-cpu
-cpu
-cpu
-cpu
 io 2
 cpu
+io 0
+cpu
+cpu
+cpu
+io 1
 cpu
 cpu
 cpu
@@ -25,14 +15,24 @@ cpu
 cpu
 cpu
 cpu
-cpu
-cpu
-cpu
-io 2
+io 0
 cpu
 cpu
 cpu
 io 3
+cpu
+cpu
+io 1
+cpu
+cpu
+cpu
+cpu
+cpu
+cpu
+cpu
+cpu
+cpu
+cpu
 cpu
 cpu
 cpu
