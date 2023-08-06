@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 
+// ########################### 24 bit BMP Image Implementation ################################
+// Use packing for forcing no padding on structs for BMP file format compliance
+
 struct __attribute__((packed)) BmpHeader {
   char signature[2] = {'B', 'M'};
   std::uint32_t fileSize;
@@ -74,11 +77,7 @@ public:
   }
 };
 
-struct Event {
-  std::string
-      eventType; // I honestly dont think this not being an enum is an issue
-  std::string procName;
-};
+// ################### Utils #############################
 
 bool subStringSearch(const std::string &searchOn, const std::string &find) {
   if (find.size() > searchOn.size()) {
@@ -127,6 +126,14 @@ void printColor(int r, int g, int b, const std::string &text) {
   std::cout << "\033[38;2;" << r << ";" << g << ";" << b << "m" << text
             << "\033[0m";
 }
+
+// ######################## Log Processing and Utils #######################
+
+struct Event {
+  std::string
+      eventType; // I honestly dont think this not being an enum is an issue
+  std::string procName;
+};
 
 /*
  * Given a file go through the log contents and create
@@ -192,6 +199,7 @@ void printReport(const std::string &logfilename) {
     }
   }
 
+  // Graph creation by making a matrix for an image, and creating a BMP image on disk
   unsigned int rows = 600;
   unsigned int cols = 2000;
 
@@ -205,17 +213,14 @@ void printReport(const std::string &logfilename) {
   std::unordered_map<std::string, Pixel> procColors;
 
   // size of each block the log represents
-  // block dimension: 5, 10
-  // we start with initial padding
-
-  int heightBlock = 50;
+  int heightBlock = 80;
   int widthBlock = 3;
 
   std::pair<int, int> lastLeftTop =
       std::make_pair(200, 20); // initial padding showing y, x
 
   for (const Event &ev : events) {
-    // based on event type and proc name make a block of pixels and send that
+    // based on event type and proc name make a rectangular block of pixels and send that
     std::unordered_map<std::string, Pixel>::iterator it =
         procColors.find(ev.procName);
 
