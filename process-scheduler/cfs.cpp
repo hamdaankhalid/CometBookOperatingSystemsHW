@@ -451,7 +451,12 @@ public:
 
       int idleFor = 0;
       while (true) {
-        if (this->runningProcs.empty()) {
+        bool noProc = true;
+        {
+          std::lock_guard(this->procRbtMu);
+          noProc = this->runningProcs.empty();
+        }
+        if (noProc) {
           if (idleFor > 60) {
             std::cout
                 << "[OS] Scheduler idled for 60 seconds before deciding to "
@@ -478,8 +483,8 @@ public:
 
         // create a block to force lock to be released via RAII
         {
+          std::lock_guard(this->procRbtMu);
           procToRun = this->runningProcs.begin()->first;
-          std::lock_guard<std::mutex> lock(this->procRbtMu);
           // poppping off the least vRuntime proccess
           this->runningProcs.erase(procToRun);
           for (auto &proc : this->runningProcs) {
@@ -508,20 +513,19 @@ public:
         std::optional<int> ioEvent = result.value().ioEvent;
 
         if (ioEvent.has_value()) {
-          std::lock_guard<std::mutex> lock(this->ioProcsMu);
+          std::lock_guard<std::mutex>(this->ioProcsMu);
           this->inIoProcs[procToRun->getProcName()] = procToRun;
 
           std::thread bgTimer = std::thread([this, procToRun, ioEvent]() {
             std::this_thread::sleep_for(std::chrono::seconds(ioEvent.value()));
-            std::lock_guard<std::mutex> ioLock(this->ioProcsMu);
+            std::lock_guard<std::mutex>(this->procRbtMu);
+			std::lock_guard<std::mutex>(this->ioProcsMu);
             this->inIoProcs.erase(procToRun->getProcName());
-            std::lock_guard<std::mutex> procLock(this->procRbtMu);
             this->runningProcs[procToRun] = true;
           });
-
           bgTimer.detach();
         } else {
-          std::lock_guard<std::mutex> lock(this->procRbtMu);
+          std::lock_guard<std::mutex>(this->procRbtMu);
           this->runningProcs[procToRun] = true;
         }
       }
@@ -551,7 +555,7 @@ public:
 
           // use blocks to release locks via RAII
           {
-            std::lock_guard<std::mutex> lock(this->procRbtMu);
+            std::lock_guard<std::mutex>(this->procRbtMu);
             std::shared_ptr<SchedulerProccess> proc =
                 std::make_shared<SchedulerProccess>(filename, procName);
 

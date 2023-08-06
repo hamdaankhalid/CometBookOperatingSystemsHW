@@ -4,77 +4,73 @@
 [SIMULATOR] Wrote message to child proc p1 proc_p1
 [OS] Creating Proc Entry for p1 from filename proc_p1
 [SIMULATOR] perform a delay on delivery 1
+[SIMULATOR] Wrote message to child proc p2 proc_p2
 [OS] Scheduler idling 1 'th' time.
 [OS] Choosing to run p1 Proc for 45
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 0
-[HARDWARE] IO event occurred for p1 for 1 time 
-[SIMULATOR] Wrote message to child proc p2 proc_p2
+[HARDWARE] IO event occurred for p1 for 0 time 
 [OS] Creating Proc Entry for p2 from filename proc_p2
 [SIMULATOR] perform a delay on delivery 2
 [OS] Scheduler idling 0 'th' time.
 [OS] Choosing to run p2 Proc for 30
 [HARDWARE] CPU Instruction for p2 Program Instruction Counter 0
 [HARDWARE] CPU Instruction for p2 Program Instruction Counter 1
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 2
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 3
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 4
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 5
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 6
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 7
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 8
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 9
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 10
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 11
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 12
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 13
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 14
 [HARDWARE] IO event occurred for p2 for 3 time 
 [OS] Choosing to run p1 Proc for 45
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 2
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 3
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 4
-[HARDWARE] IO event occurred for p1 for 2 time 
+[HARDWARE] IO event occurred for p1 for 3 time 
 [OS] Scheduler idling 0 'th' time.
 [SIMULATOR] Wrote message to child proc p3 proc_p3
-[SIMULATOR] set the niceness of p3 to -17
+[SIMULATOR] set the niceness of p3 to -2
 [OS] Creating Proc Entry for p3 from filename proc_p3
 [SIMULATOR] perform a delay on delivery 1
 [OS] Scheduler idling 1 'th' time.
-[OS] Choosing to run p3 Proc for 30
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 0
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 1
-[HARDWARE] IO event occurred for p3 for 0 time 
-[OS] Choosing to run p1 Proc for 45
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 6
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 7
-[HARDWARE] IO event occurred for p1 for 2 time 
 [OS] Choosing to run p3 Proc for 45
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 3
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 4
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 5
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 6
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 7
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 8
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 9
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 10
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 11
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 12
-[HARDWARE] IO event occurred for p3 for 1 time 
+[HARDWARE] IO event occurred for p3 for 3 time 
 [SIMULATOR] Wrote message to child proc p4 proc_p4
 [OS] Creating Proc Entry for p4 from filename proc_p4
 [SIMULATOR] perform a delay on delivery 1
 [OS] Scheduler idling 0 'th' time.
 [OS] Choosing to run p4 Proc for 30
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 0
 [HARDWARE] IO event occurred for p4 for 2 time 
-[OS] Choosing to run p3 Proc for 30
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 14
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 15
-[HARDWARE] CPU Instruction for p3 Program Instruction Counter 16
-[HARDWARE] IO event occurred for p3 for 2 time 
-[OS] Choosing to run p2 Proc for 45
-[HARDWARE] IO event occurred for p2 for 2 time 
-[SIMULATOR] Wrote message to child proc p5 proc_p5
-[OS] Creating Proc Entry for p5 from filename proc_p5
-[SIMULATOR] perform a delay on delivery 1
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p5 Proc for 30
-[HARDWARE] CPU Instruction for p5 Program Instruction Counter 0
-[HARDWARE] IO event occurred for p5 for 1 time 
-[OS] Choosing to run p1 Proc for 45
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 9
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 10
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 11
+[OS] Choosing to run p1 Proc for 30
 [HARDWARE] IO event occurred for p1 for 2 time 
+[OS] Choosing to run p2 Proc for 45
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 16
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 17
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 18
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 19
+[HARDWARE] IO event occurred for p2 for 3 time 
+[SIMULATOR] Wrote message to child proc p5 proc_p5
+[SIMULATOR] perform a delay on delivery 1
+[OS] Creating Proc Entry for p5 from filename proc_p5
+[OS] Scheduler idling 0 'th' time.
+[OS] Choosing to run p5 Proc for 45
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 0
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 1
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 2
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 3
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 4
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 5
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 6
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 7
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 8
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 9
+[HARDWARE] IO event occurred for p5 for 3 time 
 [SIMULATOR] Wrote message to child proc p6 proc_p6
-[SIMULATOR] set the niceness of p6 to -9
+[SIMULATOR] set the niceness of p6 to 15
 [OS] Creating Proc Entry for p6 from filename proc_p6
 [SIMULATOR] perform a delay on delivery 1
 [OS] Scheduler idling 0 'th' time.
@@ -110,283 +106,249 @@
 [HARDWARE] CPU Instruction for p6 Program Instruction Counter 28
 [HARDWARE] CPU Instruction for p6 Program Instruction Counter 29
 [OS] Proc p6 reported completion to scheduler.
-[OS] Choosing to run p4 Proc for 30
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 2
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 3
-[HARDWARE] IO event occurred for p4 for 2 time 
-[OS] Choosing to run p2 Proc for 45
-[HARDWARE] CPU Instruction for p2 Program Instruction Counter 4
-[HARDWARE] IO event occurred for p2 for 1 time 
+[OS] Choosing to run p1 Proc for 45
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 4
+[HARDWARE] IO event occurred for p1 for 3 time 
 [SIMULATOR] Wrote message to child proc p7 proc_p7
 [OS] Creating Proc Entry for p7 from filename proc_p7
 [OS] Scheduler CFS recvd end of proc enqueueing signal
 [OS] User Simulator sent end of process requests signal. Waiting for background process to cleanup.
 [OS] Scheduler idling 0 'th' time.
 [OS] Choosing to run p7 Proc for 30
-[HARDWARE] IO event occurred for p7 for 3 time 
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 3 time 
-[OS] Choosing to run p1 Proc for 45
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 13
-[HARDWARE] IO event occurred for p1 for 1 time 
+[HARDWARE] IO event occurred for p7 for 1 time 
+[OS] Choosing to run p2 Proc for 45
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 21
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 22
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 23
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 24
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 25
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 26
+[HARDWARE] IO event occurred for p2 for 1 time 
 [OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 5
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 6
-[HARDWARE] IO event occurred for p4 for 2 time 
+[OS] Choosing to run p7 Proc for 30
+[HARDWARE] IO event occurred for p7 for 3 time 
+[OS] Choosing to run p5 Proc for 30
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 11
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 12
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 13
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 14
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 15
+[HARDWARE] IO event occurred for p5 for 3 time 
+[OS] Choosing to run p2 Proc for 45
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 28
+[HARDWARE] CPU Instruction for p2 Program Instruction Counter 29
+[OS] Proc p2 reported completion to scheduler.
+[OS] Scheduler idling 0 'th' time.
 [OS] Choosing to run p1 Proc for 45
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 15
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 6
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 7
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 8
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 9
 [HARDWARE] IO event occurred for p1 for 3 time 
 [OS] Scheduler idling 0 'th' time.
 [OS] Scheduler idling 1 'th' time.
 [OS] Choosing to run p7 Proc for 30
-[HARDWARE] IO event occurred for p7 for 1 time 
-[OS] Choosing to run p4 Proc for 30
-[HARDWARE] IO event occurred for p4 for 0 time 
-[OS] Choosing to run p2 Proc for 45
-[HARDWARE] IO event occurred for p2 for 0 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] IO event occurred for p4 for 0 time 
-[OS] Choosing to run p2 Proc for 45
-[HARDWARE] CPU Instruction for p2 Program Instruction Counter 8
-[HARDWARE] CPU Instruction for p2 Program Instruction Counter 9
-[HARDWARE] IO event occurred for p2 for 3 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] IO event occurred for p4 for 3 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 30
 [HARDWARE] CPU Instruction for p7 Program Instruction Counter 2
 [HARDWARE] CPU Instruction for p7 Program Instruction Counter 3
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 4
 [HARDWARE] IO event occurred for p7 for 2 time 
-[OS] Choosing to run p1 Proc for 45
-[HARDWARE] IO event occurred for p1 for 1 time 
+[OS] Choosing to run p5 Proc for 45
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 17
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 18
+[HARDWARE] IO event occurred for p5 for 2 time 
 [OS] Scheduler idling 0 'th' time.
 [OS] Choosing to run p1 Proc for 45
-[HARDWARE] IO event occurred for p1 for 0 time 
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 11
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 12
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 13
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 14
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 15
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 16
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 17
+[HARDWARE] IO event occurred for p1 for 1 time 
 [OS] Scheduler idling 0 'th' time.
 [OS] Choosing to run p7 Proc for 30
-[HARDWARE] IO event occurred for p7 for 2 time 
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 0 time 
-[OS] Choosing to run p4 Proc for 30
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 11
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 12
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 13
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 14
-[HARDWARE] IO event occurred for p4 for 0 time 
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 3 time 
-[OS] Choosing to run p4 Proc for 30
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 16
-[HARDWARE] IO event occurred for p4 for 2 time 
-[OS] Choosing to run p1 Proc for 45
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 6
+[HARDWARE] IO event occurred for p7 for 1 time 
+[OS] Choosing to run p1 Proc for 30
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 19
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 20
-[HARDWARE] IO event occurred for p1 for 1 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p1 Proc for 45
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 21
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 22
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 23
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 24
+[HARDWARE] IO event occurred for p1 for 2 time 
+[OS] Choosing to run p5 Proc for 45
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 20
+[HARDWARE] IO event occurred for p5 for 1 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 8
+[HARDWARE] IO event occurred for p7 for 3 time 
+[OS] Choosing to run p5 Proc for 45
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 22
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 23
+[HARDWARE] IO event occurred for p5 for 3 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Choosing to run p1 Proc for 45
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 25
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 26
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 27
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 28
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 29
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 30
+[HARDWARE] IO event occurred for p1 for 2 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Scheduler idling 1 'th' time.
+[OS] Choosing to run p7 Proc for 30
+[HARDWARE] IO event occurred for p7 for 1 time 
+[OS] Choosing to run p1 Proc for 30
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 31
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 32
-[HARDWARE] IO event occurred for p1 for 3 time 
+[HARDWARE] IO event occurred for p1 for 2 time 
+[OS] Choosing to run p5 Proc for 45
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 25
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 26
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 27
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 28
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 29
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 30
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 31
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 32
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 33
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 34
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 35
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 36
+[HARDWARE] IO event occurred for p5 for 2 time 
 [OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 30
+[OS] Choosing to run p7 Proc for 45
 [HARDWARE] IO event occurred for p7 for 1 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] IO event occurred for p4 for 2 time 
 [OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 30
-[HARDWARE] IO event occurred for p7 for 1 time 
-[OS] Choosing to run p2 Proc for 45
-[HARDWARE] IO event occurred for p2 for 1 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 30
-[HARDWARE] IO event occurred for p7 for 2 time 
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 3 time 
-[OS] Choosing to run p4 Proc for 30
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 19
-[HARDWARE] IO event occurred for p4 for 2 time 
-[OS] Choosing to run p1 Proc for 45
+[OS] Choosing to run p1 Proc for 30
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 33
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 34
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 35
-[HARDWARE] IO event occurred for p1 for 3 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Scheduler idling 1 'th' time.
-[OS] Choosing to run p7 Proc for 30
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 9
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 10
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 11
-[HARDWARE] IO event occurred for p7 for 0 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 21
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 22
-[HARDWARE] IO event occurred for p4 for 2 time 
-[OS] Choosing to run p7 Proc for 45
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 13
-[HARDWARE] IO event occurred for p7 for 0 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 30
-[HARDWARE] IO event occurred for p7 for 2 time 
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 3 time 
-[OS] Choosing to run p1 Proc for 45
+[HARDWARE] CPU Instruction for p1 Program Instruction Counter 36
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 37
-[HARDWARE] CPU Instruction for p1 Program Instruction Counter 38
+[HARDWARE] IO event occurred for p1 for 0 time 
+[OS] Choosing to run p7 Proc for 30
+[HARDWARE] IO event occurred for p7 for 0 time 
+[OS] Choosing to run p5 Proc for 30
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 38
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 39
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 40
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 41
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 42
+[HARDWARE] IO event occurred for p5 for 1 time 
+[OS] Choosing to run p7 Proc for 30
+[HARDWARE] IO event occurred for p7 for 0 time 
+[OS] Choosing to run p1 Proc for 45
 [HARDWARE] CPU Instruction for p1 Program Instruction Counter 39
 [OS] Proc p1 reported completion to scheduler.
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] IO event occurred for p4 for 1 time 
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] IO event occurred for p7 for 0 time 
 [OS] Scheduler idling 0 'th' time.
 [OS] Choosing to run p7 Proc for 30
+[HARDWARE] IO event occurred for p7 for 0 time 
+[OS] Choosing to run p5 Proc for 45
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 44
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 45
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 46
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 47
+[HARDWARE] IO event occurred for p5 for 2 time 
+[OS] Choosing to run p7 Proc for 45
 [HARDWARE] CPU Instruction for p7 Program Instruction Counter 16
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 17
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 18
 [HARDWARE] IO event occurred for p7 for 3 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] IO event occurred for p4 for 3 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p2 Proc for 45
-[HARDWARE] IO event occurred for p2 for 2 time 
 [OS] Scheduler idling 0 'th' time.
 [OS] Scheduler idling 1 'th' time.
-[OS] Choosing to run p7 Proc for 30
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 20
-[HARDWARE] IO event occurred for p7 for 0 time 
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 1 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] IO event occurred for p4 for 0 time 
+[OS] Choosing to run p5 Proc for 45
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 49
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 50
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 51
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 52
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 53
+[HARDWARE] CPU Instruction for p5 Program Instruction Counter 54
+[OS] Proc p5 reported completion to scheduler.
 [OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 30
-[HARDWARE] IO event occurred for p7 for 0 time 
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 0 time 
-[OS] Choosing to run p7 Proc for 30
-[HARDWARE] IO event occurred for p7 for 2 time 
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 2 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] IO event occurred for p4 for 1 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 28
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 29
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 30
-[HARDWARE] IO event occurred for p4 for 2 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 2 time 
 [OS] Choosing to run p7 Proc for 45
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 18
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 19
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 20
+[HARDWARE] IO event occurred for p7 for 3 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Scheduler idling 1 'th' time.
+[OS] Scheduler idling 2 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] IO event occurred for p7 for 2 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Scheduler idling 1 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 23
 [HARDWARE] CPU Instruction for p7 Program Instruction Counter 24
 [HARDWARE] IO event occurred for p7 for 3 time 
 [OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] IO event occurred for p4 for 2 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p2 Proc for 45
-[HARDWARE] IO event occurred for p2 for 2 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 30
+[OS] Scheduler idling 1 'th' time.
+[OS] Scheduler idling 2 'th' time.
+[OS] Choosing to run p7 Proc for 45
 [HARDWARE] CPU Instruction for p7 Program Instruction Counter 26
-[HARDWARE] IO event occurred for p7 for 0 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 33
-[HARDWARE] IO event occurred for p4 for 0 time 
-[OS] Choosing to run p7 Proc for 45
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 28
-[HARDWARE] IO event occurred for p7 for 0 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 35
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 36
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 37
-[HARDWARE] IO event occurred for p4 for 2 time 
-[OS] Choosing to run p7 Proc for 45
-[HARDWARE] IO event occurred for p7 for 0 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 3 time 
-[OS] Choosing to run p7 Proc for 45
-[HARDWARE] IO event occurred for p7 for 2 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 39
-[HARDWARE] IO event occurred for p4 for 0 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 30
-[HARDWARE] IO event occurred for p7 for 0 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] IO event occurred for p4 for 3 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 2 time 
-[OS] Choosing to run p7 Proc for 45
-[HARDWARE] IO event occurred for p7 for 0 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 45
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 34
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 35
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 36
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 37
-[HARDWARE] IO event occurred for p7 for 2 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 0 time 
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 42
-[HARDWARE] IO event occurred for p4 for 2 time 
-[OS] Choosing to run p2 Proc for 45
-[HARDWARE] CPU Instruction for p2 Program Instruction Counter 25
-[HARDWARE] IO event occurred for p2 for 1 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 45
 [HARDWARE] IO event occurred for p7 for 3 time 
-[OS] Choosing to run p2 Proc for 45
-[HARDWARE] IO event occurred for p2 for 3 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p4 Proc for 45
-[HARDWARE] CPU Instruction for p4 Program Instruction Counter 44
-[OS] Proc p4 reported completion to scheduler.
 [OS] Scheduler idling 0 'th' time.
 [OS] Scheduler idling 1 'th' time.
-[OS] Choosing to run p2 Proc for 30
-[HARDWARE] IO event occurred for p2 for 2 time 
+[OS] Scheduler idling 2 'th' time.
 [OS] Choosing to run p7 Proc for 45
 [HARDWARE] IO event occurred for p7 for 3 time 
 [OS] Scheduler idling 0 'th' time.
 [OS] Scheduler idling 1 'th' time.
-[OS] Choosing to run p2 Proc for 45
-[HARDWARE] IO event occurred for p2 for 3 time 
+[OS] Scheduler idling 2 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] IO event occurred for p7 for 0 time 
 [OS] Scheduler idling 0 'th' time.
 [OS] Choosing to run p7 Proc for 45
-[HARDWARE] IO event occurred for p7 for 3 time 
-[OS] Scheduler idling 0 'th' time.
-[OS] Scheduler idling 1 'th' time.
-[OS] Choosing to run p2 Proc for 45
-[OS] Proc p2 reported completion to scheduler.
-[OS] Scheduler idling 0 'th' time.
-[OS] Choosing to run p7 Proc for 45
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 42
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 43
 [HARDWARE] IO event occurred for p7 for 1 time 
 [OS] Scheduler idling 0 'th' time.
 [OS] Choosing to run p7 Proc for 45
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 45
 [HARDWARE] IO event occurred for p7 for 2 time 
 [OS] Scheduler idling 0 'th' time.
 [OS] Scheduler idling 1 'th' time.
 [OS] Choosing to run p7 Proc for 45
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 47
-[HARDWARE] CPU Instruction for p7 Program Instruction Counter 48
+[HARDWARE] IO event occurred for p7 for 2 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Scheduler idling 1 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 33
+[HARDWARE] IO event occurred for p7 for 1 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] IO event occurred for p7 for 3 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Scheduler idling 1 'th' time.
+[OS] Scheduler idling 2 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] IO event occurred for p7 for 0 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] IO event occurred for p7 for 0 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] IO event occurred for p7 for 1 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] IO event occurred for p7 for 2 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Scheduler idling 1 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 40
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 41
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 42
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 43
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 44
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 45
+[HARDWARE] CPU Instruction for p7 Program Instruction Counter 46
+[HARDWARE] IO event occurred for p7 for 0 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Choosing to run p7 Proc for 45
+[HARDWARE] IO event occurred for p7 for 3 time 
+[OS] Scheduler idling 0 'th' time.
+[OS] Scheduler idling 1 'th' time.
+[OS] Scheduler idling 2 'th' time.
+[OS] Choosing to run p7 Proc for 45
 [HARDWARE] CPU Instruction for p7 Program Instruction Counter 49
 [OS] Proc p7 reported completion to scheduler.
 [OS] Scheduler idling 0 'th' time.
