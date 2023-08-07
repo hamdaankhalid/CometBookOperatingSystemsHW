@@ -9,8 +9,9 @@
 #include <utility>
 #include <vector>
 
-// ########################### 24 bit BMP Image Implementation ################################
-// Use packing for forcing no padding on structs for BMP file format compliance
+// ########################### 24 bit BMP Image Implementation
+// ################################ Use packing for forcing no padding on
+// structs for BMP file format compliance
 
 struct __attribute__((packed)) BmpHeader {
   char signature[2] = {'B', 'M'};
@@ -199,7 +200,8 @@ void printReport(const std::string &logfilename) {
     }
   }
 
-  // Graph creation by making a matrix for an image, and creating a BMP image on disk
+  // Graph creation by making a matrix for an image, and creating a BMP image on
+  // disk
   unsigned int rows = 600;
   unsigned int cols = 2000;
 
@@ -220,7 +222,8 @@ void printReport(const std::string &logfilename) {
       std::make_pair(200, 20); // initial padding showing y, x
 
   for (const Event &ev : events) {
-    // based on event type and proc name make a rectangular block of pixels and send that
+    // based on event type and proc name make a rectangular block of pixels and
+    // send that
     std::unordered_map<std::string, Pixel>::iterator it =
         procColors.find(ev.procName);
 

@@ -437,8 +437,8 @@ private:
   std::unordered_map<std::string, std::shared_ptr<SchedulerProccess>> inIoProcs;
 
   // Concurrency members
+  std::vector<std::thread> bgTimers;
   std::thread schedulerThread;
-  bool isThreadRunning = false;
   std::mutex procRbtMu;
   std::mutex ioProcsMu;
 
@@ -447,43 +447,35 @@ public:
 
   void startScheduler() {
     this->schedulerThread = std::thread([this]() {
-      this->isThreadRunning = true;
-
       int idleFor = 0;
       while (true) {
         bool noProc = true;
         {
-          std::lock_guard(this->procRbtMu);
+          std::lock_guard lgP(this->procRbtMu);
           noProc = this->runningProcs.empty();
         }
         if (noProc) {
-          if (idleFor > 60) {
+          if (idleFor > 30) {
             std::cout
-                << "[OS] Scheduler idled for 60 seconds before deciding to "
+                << "[OS] Scheduler idled for 30 seconds before deciding to "
                    "kill itself."
                 << std::endl;
-            return;
+            break;
           }
-
           std::this_thread::sleep_for(std::chrono::seconds(1));
-
           std::cout << "[OS] Scheduler idling " << idleFor << " 'th' time."
                     << std::endl;
-
           idleFor++;
           continue;
         }
 
         // reset our idleFor counter
         idleFor = 0;
-
         std::shared_ptr<SchedulerProccess> procToRun = nullptr;
-
         int weightsSum = 0;
-
         // create a block to force lock to be released via RAII
         {
-          std::lock_guard(this->procRbtMu);
+          std::lock_guard lgP(this->procRbtMu);
           procToRun = this->runningProcs.begin()->first;
           // poppping off the least vRuntime proccess
           this->runningProcs.erase(procToRun);
@@ -492,40 +484,34 @@ public:
           }
           weightsSum += procToRun->getWeight();
         }
-
         int runFor = procToRun->timeSlice(this->schedLatency,
                                           this->minGranularity, weightsSum);
-
         std::cout << "[OS] Choosing to run " << procToRun->getProcName()
                   << " Proc for " << runFor << std::endl;
-
         std::optional<ProcRunResult> result = procToRun->runWithCap(runFor);
-
         if (!result.has_value()) {
           std::cout << "[OS] Proc " << procToRun->getProcName()
                     << " reported completion to scheduler." << std::endl;
           continue;
         }
-
         int ranFor = result.value().ranFor;
         procToRun->incrVruntime(ranFor);
-
         std::optional<int> ioEvent = result.value().ioEvent;
-
         if (ioEvent.has_value()) {
-          std::lock_guard<std::mutex>(this->ioProcsMu);
+          std::lock_guard<std::mutex> lgIo(this->ioProcsMu);
           this->inIoProcs[procToRun->getProcName()] = procToRun;
 
           std::thread bgTimer = std::thread([this, procToRun, ioEvent]() {
             std::this_thread::sleep_for(std::chrono::seconds(ioEvent.value()));
-            std::lock_guard<std::mutex>(this->procRbtMu);
-			std::lock_guard<std::mutex>(this->ioProcsMu);
+            std::lock_guard<std::mutex> lgP2(this->procRbtMu);
+            std::lock_guard<std::mutex> lgIo2(this->ioProcsMu);
             this->inIoProcs.erase(procToRun->getProcName());
             this->runningProcs[procToRun] = true;
           });
-          bgTimer.detach();
+          this->bgTimers.push_back(std::move(bgTimer));
+
         } else {
-          std::lock_guard<std::mutex>(this->procRbtMu);
+          std::lock_guard<std::mutex> lgP(this->procRbtMu);
           this->runningProcs[procToRun] = true;
         }
       }
@@ -533,13 +519,28 @@ public:
       assert(this->inIoProcs.empty());
       assert(this->runningProcs.empty());
 
-      this->isThreadRunning = false;
+      for (auto &timer : this->bgTimers) {
+        if (timer.joinable()) {
+          timer.join();
+        }
+      }
+
+      std::lock_guard<std::mutex> lgP(this->procRbtMu);
+      if (this->runningProcs.empty()) {
+        std::cout << "All bg timers were cleared" << std::endl;
+        return;
+      } else {
+        // continue the scheduler
+        std::cout << "Found active BG timer threads. Continuing Scheduler till "
+                     "they clear"
+                  << std::endl;
+        this->startScheduler();
+      }
     });
   }
 
   void listen() {
-    bool notFinished = true;
-    while (notFinished) {
+    while (true) {
       ssize_t bytesRead =
           read(this->readPipe, this->buffer, sizeof(this->buffer) - 1);
       if (bytesRead > 0) {
@@ -547,7 +548,7 @@ public:
 
         if (recvdSignal == "end") {
           printf("[OS] Scheduler CFS recvd end of proc enqueueing signal\n");
-          notFinished = false;
+          break;
         } else {
           // read the proc file and load instructions into memory for the
           std::string procName = recvdSignal.substr(5, 2);
@@ -555,7 +556,7 @@ public:
 
           // use blocks to release locks via RAII
           {
-            std::lock_guard<std::mutex>(this->procRbtMu);
+            std::lock_guard<std::mutex> lgP(this->procRbtMu);
             std::shared_ptr<SchedulerProccess> proc =
                 std::make_shared<SchedulerProccess>(filename, procName);
 
@@ -580,13 +581,12 @@ public:
     }
 
     // run a cleanup such as waiting on CFS to finish existing jobs
-    if (this->isThreadRunning) {
-      std::cout << "[OS] User Simulator sent end of process requests signal. "
-                   "Waiting for "
-                   "background process to cleanup."
-                << std::endl;
-      this->schedulerThread.join();
-    }
+    std::cout << "[OS] User Simulator sent end of process requests signal. "
+                 "Waiting for "
+                 "background process to cleanup."
+              << std::endl;
+
+    this->schedulerThread.join();
   }
 };
 
@@ -652,9 +652,9 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    std::cout << "[SIMULATOR] Child process (CFS Scheduler) has terminated. "
-                 "Simulator Exiting."
-              << std::endl;
+    std::cout << "[SIMULATOR] Child process (CFS Scheduler) with PID: " << pid
+              << " has terminated with status " << WEXITSTATUS(status)
+              << ". Simulator Exiting." << std::endl;
   }
 
   return 0;
