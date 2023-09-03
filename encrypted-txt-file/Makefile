@@ -33,7 +33,7 @@ $(BUILD_DIR)/%: $(EXAMPLES_DIR)/%.o
 	$(CC) $(LDFLAGS) $< -o $@ $(LIBS)
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)/*
 
 .PHONY: all lib clean
 
