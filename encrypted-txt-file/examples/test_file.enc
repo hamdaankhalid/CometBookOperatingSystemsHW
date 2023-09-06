@@ -1,1 +1,0 @@
-The Initial Permutation (IP) lookup table in the Data Encryption Standard (DES) specifies the rearrangement of the bits in the 64-bit plaintext block before the start of the encryption algorithm. The IP table determines the initial permutation of the plaintext data, and its purpose is to provide an initial level of diffusion and confusion in the data.

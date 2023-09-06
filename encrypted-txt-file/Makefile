@@ -27,7 +27,7 @@ lib: $(LIB_OBJS)
 	ar rcs $(BUILD_DIR)/libcrypwalk.a $(LIB_OBJS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lssl -lcrypto
 
 $(BUILD_DIR)/%: $(EXAMPLES_DIR)/%.o
 	$(CC) $(LDFLAGS) $< -o $@ $(LIBS)

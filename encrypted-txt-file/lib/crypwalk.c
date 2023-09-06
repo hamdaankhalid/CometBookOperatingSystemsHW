@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-# define ENCRYPTED_FILE_EXTENSION ".enc"
+# define ENCRYPTED_FILE_EXTENSION ".crenc"
 # define BUFFER_SIZE 1024
 # define DES_BLOCK_BYTES 8
 
@@ -29,8 +29,15 @@ const int INVERSE_INITIAL_PERMUTATION_LOOKUP[64] = {58, 50, 42, 34, 26, 18, 10, 
 													61, 53, 45, 37, 29, 21, 13, 5,
 													63, 55, 47, 39, 31, 23, 15, 7};
 
+typedef struct {
+	unsigned char* buffer;
+	size_t buffer_size;
+} DynamicBufferResult;
+
 // forward decl
-int block_encrypt(unsigned char* block, char key[8]);
+int block_encrypt(unsigned char* block);
+int block_decrypt(unsigned char* block);
+DynamicBufferResult read_dynamic_buffer(const char* file_name);
 
 void printDebugBinary(unsigned char byte) {
 	for (int i = 7; i >= 0; i--) {
@@ -41,64 +48,36 @@ void printDebugBinary(unsigned char byte) {
     printf("\n");
 }
 
+typedef struct __attribute__((packed)) {
+	unsigned int hash_size;
+	unsigned int data_offset;
+	char hash[13];
+} CrypwalkHeader;
+
 ENCRYPT_FILE_RETURN encrypt_file(const char *file_name, const char* encryption_key) {
 	if (encryption_key == NULL || strlen(encryption_key) > 7) {
 		return ENCRYPTION_INVALID_KEY;
 	}
 
-	FILE* file = fopen(file_name, "rb+");
+	FILE* file = fopen(file_name, "rb");
 	if (file  == NULL) {
 		return ENCRYPTION_FOPEN_ERR;
 	}
 	
-	unsigned char* concatenated_contents = NULL;
-	size_t curr_size = 0;
+	DynamicBufferResult buf = read_dynamic_buffer(file_name);
+	unsigned char* concatenated_contents = buf.buffer;
+	size_t curr_size = buf.buffer_size;
 
-	char buffer[BUFFER_SIZE];	
-	size_t read = fread(&buffer, sizeof (char), BUFFER_SIZE, file);
-	while (read > 0) {
-		if (concatenated_contents == NULL) {
-			concatenated_contents = (unsigned char*)malloc(read * sizeof(unsigned char));
-			if (concatenated_contents == NULL) {
-				fclose(file);
-				return ENCRYPTION_ALLOC_ERR;
-			}
-			concatenated_contents = memcpy(concatenated_contents, &buffer, read);
-			if (concatenated_contents == NULL) {
-				fclose(file);
-				return ENCRYPTION_ALLOC_ERR;
-			}
-			curr_size += read;
-		} else {
-			// adjust concatenated_contents for increase in size
-			unsigned char* new_adjusted_concatenated = realloc(concatenated_contents, curr_size + read);
-			if (new_adjusted_concatenated == NULL) {
-				free(concatenated_contents);
-				fclose(file);
-				return ENCRYPTION_ALLOC_ERR;
-			}
-			concatenated_contents = new_adjusted_concatenated;
-			unsigned char* copied = memcpy(concatenated_contents + curr_size, &buffer, read);
-			if (copied == NULL) {
-				fclose(file);
-				return ENCRYPTION_ALLOC_ERR;
-			}
-			curr_size += read;
-		}
-		printf("curr_size %zu, and was read %zu\n", curr_size, read);
-		read = fread(&buffer, sizeof (unsigned char), BUFFER_SIZE, file);
-	}
-	fclose(file);
 	if (concatenated_contents == NULL) {
-		perror("no content read from file");
 		return ENCRYPTION_FILE_ERR;
 	}
-
+	
+	// Later we can use concurrency here
 	// iterate over the concatenated_contents over 8 byte blocks
 	int num_rounds = curr_size / 8; // auto floor division
 	for (int i = 0; i < num_rounds; i++) {
 		unsigned char* block = concatenated_contents + (i*8); // move 8 bytes at a time
-		int res = block_encrypt(block, "masterk");
+		int res = block_encrypt(block);
 		if (res < 0) {
 			free(concatenated_contents);
 			return ENCRYPTION_ALGO_ERR;
@@ -116,29 +95,168 @@ ENCRYPT_FILE_RETURN encrypt_file(const char *file_name, const char* encryption_k
 	strcpy(encrypted_file_name, file_name);
 	strcpy(encrypted_file_name + file_name_len, ENCRYPTED_FILE_EXTENSION);
 	
-	FILE* encrypted_file = fopen(encrypted_file_name, "wb");	
+	// create encrypted file header
+	CrypwalkHeader header;
+	header.data_offset = sizeof(CrypwalkHeader);
+	// TODO: GENERATE HASH
+	strcpy(header.hash, "mylittlepony");
+	header.hash_size = 13;
+
+	FILE* encrypted_file = fopen(encrypted_file_name, "wb");
+
+	// write header into the file
+	if (fwrite(&header, sizeof(CrypwalkHeader), 1, encrypted_file) != 1) {
+		fclose(encrypted_file);
+		free(concatenated_contents);
+		free(encrypted_file_name);
+		return ENCRYPTION_WRITE_FILE_ERR;
+	}
+
+	// write encrypted contents into file
 	if(fwrite(concatenated_contents, sizeof (unsigned char), curr_size, encrypted_file) != curr_size) {
 		fclose(encrypted_file);
 		free(concatenated_contents);
 		free(encrypted_file_name);
 		return ENCRYPTION_WRITE_FILE_ERR;
 	}
-	
+
 	fclose(encrypted_file);
 	free(concatenated_contents);
 	free(encrypted_file_name);
 	return ENCRYPTION_SUCCESS;
 }
 
-int block_encrypt(unsigned char* block, char key[8]) {
+DECRYPT_FILE_RETURN decrypt_file(const char *file_name, const char *encryption_key) {
+	if (encryption_key == NULL || strlen(encryption_key) > 7) {
+		return DECRYPTION_INVALID_KEY;
+	}
+
+	FILE* file = fopen(file_name, "rb");
+	if (file  == NULL) {
+		return DECRYPTION_FOPEN_ERR;
+	}
+	
+	// from the file read the header and let it move the offset as required
+	CrypwalkHeader header;
+	int result = fread(&header, sizeof(CrypwalkHeader), 1, file);
+	if (result != 1) {
+		fclose(file);
+		return DECRYPTION_FILE_ERR;
+	}
+	fclose(file);
+
+	DynamicBufferResult buf = read_dynamic_buffer(file_name);
+	unsigned char* concatenated_contents_start = buf.buffer;
+	size_t curr_size = buf.buffer_size;
+
+	printf("CURR SIZE START: %zu \n", curr_size);
+	printf("HEADER SIZE: %zu \n", sizeof (CrypwalkHeader));
+
+	if (concatenated_contents_start == NULL) {
+		return DECRYPTION_FILE_ERR;
+	}
+
+	// skip past the header and hash
+	int offset = sizeof(CrypwalkHeader);
+	unsigned char* concatenated_contents = concatenated_contents_start + offset;
+	curr_size -= offset;
+
+	printf("CURR SIZE HEADER EXCLUDED: %zu \n", curr_size);
+	int num_rounds = curr_size / 8; // auto floor division
+	for (int i = 0; i < num_rounds; i++) {
+		unsigned char* block = concatenated_contents + (i*8); // move 8 bytes at a time
+		int res = block_decrypt(block);
+		if (res < 0) {
+			free(concatenated_contents_start);
+			return DECRYPTION_ALGO_ERR;
+		}
+	}
+		
+	int decrypt_file_name_sz = strlen(file_name) - strlen(ENCRYPTED_FILE_EXTENSION);
+	char* decrypt_file_name = (char*) malloc(decrypt_file_name_sz + 1);
+	strncpy(decrypt_file_name, file_name, decrypt_file_name_sz);
+	decrypt_file_name[decrypt_file_name_sz] = '\0';
+	
+	printf("%s\n", decrypt_file_name);
+
+	FILE* new_file = fopen(decrypt_file_name, "wb");
+	if (new_file == NULL) {
+		free(concatenated_contents_start);
+		return DECRYPTION_FILE_ERR;
+	}
+
+	// write to a new file
+	if (fwrite(concatenated_contents, sizeof(unsigned char), curr_size, new_file) != curr_size) {
+		free(decrypt_file_name);
+		free(concatenated_contents_start);
+		return DECRYPTION_FILE_ERR;
+	}
+	
+	return 0;
+}
+
+DynamicBufferResult read_dynamic_buffer(const char* file_name) {
+	DynamicBufferResult resp = {NULL, 0};
+
+	FILE* file = fopen(file_name, "rb");
+	if (file  == NULL) {
+		return resp;
+	}
+
+	unsigned char* concatenated_contents = NULL;
+	size_t curr_size = 0;
+
+	char buffer[BUFFER_SIZE];	
+	size_t read = fread(&buffer, sizeof (char), BUFFER_SIZE, file);
+	while (read > 0) {
+		if (concatenated_contents == NULL) {
+			concatenated_contents = (unsigned char*)malloc(read * sizeof(unsigned char));
+			if (concatenated_contents == NULL) {
+				fclose(file);
+				return resp;
+			}
+			concatenated_contents = memcpy(concatenated_contents, &buffer, read);
+			if (concatenated_contents == NULL) {
+				fclose(file);
+				return resp;
+			}
+			curr_size += read;
+		} else {
+			// adjust concatenated_contents for increase in size
+			unsigned char* new_adjusted_concatenated = realloc(concatenated_contents, curr_size + read);
+			if (new_adjusted_concatenated == NULL) {
+				free(concatenated_contents);
+				fclose(file);
+				return resp;
+			}
+			concatenated_contents = new_adjusted_concatenated;
+			unsigned char* copied = memcpy(concatenated_contents + curr_size, &buffer, read);
+			if (copied == NULL) {
+				fclose(file);
+				return resp;
+			}
+			curr_size += read;
+		}
+		printf("curr_size %zu, and was read %zu\n", curr_size, read);
+		read = fread(&buffer, sizeof (unsigned char), BUFFER_SIZE, file);
+	}
+	fclose(file);
+	resp.buffer = concatenated_contents;
+	resp.buffer_size = curr_size;
+	return resp;
+}
+
+int block_encrypt(unsigned char* block) {
     // manipulate copy data, and then set the initial block as the manipulated copy data
     unsigned char copy[8] = {0};
+	
+	memcpy(copy, block, 8);
 
     // initial permutation
     for (int i = 0; i < 64; i++) {
         int bit_to_read = INITIAL_PERMUTATION_LOOKUP[i] - 1;
-        unsigned char read_byte = block[bit_to_read / DES_BLOCK_BYTES];
-        unsigned char write_byte = copy[i / DES_BLOCK_BYTES];
+        unsigned char read_byte = copy[bit_to_read / DES_BLOCK_BYTES];
+        unsigned char write_byte = block[i / DES_BLOCK_BYTES];
 
         int value_at_bit = (read_byte >> (7 - (bit_to_read % 8))) & 1;
 
@@ -150,17 +268,17 @@ int block_encrypt(unsigned char* block, char key[8]) {
 			write_byte = write_byte | (1 << (7 - (i % 8)));
 		}		
 	
-        // copy back the mutated byte into copy block
-        copy[i / DES_BLOCK_BYTES] = write_byte;
+        block[i / DES_BLOCK_BYTES] = write_byte;
     }
 	
-	char sub_key[7];
-	for (int i = 0; i < 16; i++) {
-		char roundL_key[6];
-		// do some shit
-	}
+    return 0;
+}
 
-    // Inverse initial permutation
+int block_decrypt(unsigned char* block) {
+	unsigned char copy[8] = {0};
+	
+	memcpy(copy, block, 8);
+
     for (int i = 0; i < 64; i++) {
         int bit_to_read = INVERSE_INITIAL_PERMUTATION_LOOKUP[i] - 1;
         unsigned char read_byte = copy[bit_to_read / DES_BLOCK_BYTES];
@@ -174,13 +292,12 @@ int block_encrypt(unsigned char* block, char key[8]) {
 		} else {
 			// set
 			write_byte = write_byte | (1 << (7 - (i % 8)));
-		}		
+		}
 		
 		// back from copy to original block
         block[i / DES_BLOCK_BYTES] = write_byte;
     }
 
-    // End of algorithm
-    return 0;
+	return 0;
 }
 
