@@ -8,6 +8,7 @@
 #include <string.h>
 
 # define ENCRYPTED_FILE_EXTENSION ".crenc"
+# define DECRYPTED_FILE_EXTENSION ".drenc"
 # define BUFFER_SIZE 1024
 # define DES_BLOCK_BYTES 8
 
@@ -38,6 +39,8 @@ typedef struct {
 int block_encrypt(unsigned char* block);
 int block_decrypt(unsigned char* block);
 DynamicBufferResult read_dynamic_buffer(const char* file_name);
+unsigned long generateHash(const char* pswd);
+int verifyHash(const char* pswd, unsigned long hash);
 
 void printDebugBinary(unsigned char byte) {
 	for (int i = 7; i >= 0; i--) {
@@ -51,7 +54,7 @@ void printDebugBinary(unsigned char byte) {
 typedef struct __attribute__((packed)) {
 	unsigned int hash_size;
 	unsigned int data_offset;
-	char hash[13];
+	unsigned long hash;
 } CrypwalkHeader;
 
 ENCRYPT_FILE_RETURN encrypt_file(const char *file_name, const char* encryption_key) {
@@ -98,8 +101,7 @@ ENCRYPT_FILE_RETURN encrypt_file(const char *file_name, const char* encryption_k
 	// create encrypted file header
 	CrypwalkHeader header;
 	header.data_offset = sizeof(CrypwalkHeader);
-	// TODO: GENERATE HASH
-	strcpy(header.hash, "mylittlepony");
+	header.hash  = generateHash(encryption_key);
 	header.hash_size = 13;
 
 	FILE* encrypted_file = fopen(encrypted_file_name, "wb");
@@ -144,13 +146,15 @@ DECRYPT_FILE_RETURN decrypt_file(const char *file_name, const char *encryption_k
 		return DECRYPTION_FILE_ERR;
 	}
 	fclose(file);
+	
+	// false is 0
+	if (verifyHash(encryption_key, header.hash) == 0) {
+		return DECRYPTION_INCORRECT_KEY;
+	}
 
 	DynamicBufferResult buf = read_dynamic_buffer(file_name);
 	unsigned char* concatenated_contents_start = buf.buffer;
 	size_t curr_size = buf.buffer_size;
-
-	printf("CURR SIZE START: %zu \n", curr_size);
-	printf("HEADER SIZE: %zu \n", sizeof (CrypwalkHeader));
 
 	if (concatenated_contents_start == NULL) {
 		return DECRYPTION_FILE_ERR;
@@ -161,7 +165,6 @@ DECRYPT_FILE_RETURN decrypt_file(const char *file_name, const char *encryption_k
 	unsigned char* concatenated_contents = concatenated_contents_start + offset;
 	curr_size -= offset;
 
-	printf("CURR SIZE HEADER EXCLUDED: %zu \n", curr_size);
 	int num_rounds = curr_size / 8; // auto floor division
 	for (int i = 0; i < num_rounds; i++) {
 		unsigned char* block = concatenated_contents + (i*8); // move 8 bytes at a time
@@ -171,18 +174,17 @@ DECRYPT_FILE_RETURN decrypt_file(const char *file_name, const char *encryption_k
 			return DECRYPTION_ALGO_ERR;
 		}
 	}
-		
+	
 	int decrypt_file_name_sz = strlen(file_name) - strlen(ENCRYPTED_FILE_EXTENSION);
 	char* decrypt_file_name = (char*) malloc(decrypt_file_name_sz + 1);
 	strncpy(decrypt_file_name, file_name, decrypt_file_name_sz);
 	decrypt_file_name[decrypt_file_name_sz] = '\0';
 	
-	printf("%s\n", decrypt_file_name);
-
 	FILE* new_file = fopen(decrypt_file_name, "wb");
 	if (new_file == NULL) {
+		free(decrypt_file_name);
 		free(concatenated_contents_start);
-		return DECRYPTION_FILE_ERR;
+		return DECRYPTION_ALLOC_ERROR;
 	}
 
 	// write to a new file
@@ -237,7 +239,6 @@ DynamicBufferResult read_dynamic_buffer(const char* file_name) {
 			}
 			curr_size += read;
 		}
-		printf("curr_size %zu, and was read %zu\n", curr_size, read);
 		read = fread(&buffer, sizeof (unsigned char), BUFFER_SIZE, file);
 	}
 	fclose(file);
@@ -301,3 +302,15 @@ int block_decrypt(unsigned char* block) {
 	return 0;
 }
 
+unsigned long generateHash(const char* pswd) {
+	unsigned long hash_value = 5381;
+	int c;
+	while((c = *pswd++)) {
+		hash_value = ((hash_value << 5) + hash_value) + c;
+	}
+	return hash_value;
+}
+
+int verifyHash(const char* pswd, unsigned long hash) {
+	return generateHash(pswd) == hash;
+}

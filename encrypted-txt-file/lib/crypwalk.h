@@ -17,6 +17,8 @@ typedef enum {
 	DECRYPTION_FOPEN_ERR = -2,
 	DECRYPTION_FILE_ERR = -3,
 	DECRYPTION_ALGO_ERR = -4,
+	DECRYPTION_INCORRECT_KEY = -5,
+	DECRYPTION_ALLOC_ERROR = 6,
 } DECRYPT_FILE_RETURN;
 
 ENCRYPT_FILE_RETURN encrypt_file(const char* file_name, const char* encryption_key);
