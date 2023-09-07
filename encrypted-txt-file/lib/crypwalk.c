@@ -6,11 +6,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 
 # define ENCRYPTED_FILE_EXTENSION ".crenc"
 # define DECRYPTED_FILE_EXTENSION ".drenc"
 # define BUFFER_SIZE 1024
 # define DES_BLOCK_BYTES 8
+
+// ***************** Read only / Immutable data structures ***************
 
 const int INITIAL_PERMUTATION_LOOKUP[64] = {40, 8, 48, 16, 56, 24, 64, 32,
 											39, 7, 47, 15, 55, 23, 63, 31,
@@ -30,26 +33,20 @@ const int INVERSE_INITIAL_PERMUTATION_LOOKUP[64] = {58, 50, 42, 34, 26, 18, 10, 
 													61, 53, 45, 37, 29, 21, 13, 5,
 													63, 55, 47, 39, 31, 23, 15, 7};
 
+// ***************** forward decl utils *******************
+
 typedef struct {
 	unsigned char* buffer;
 	size_t buffer_size;
 } DynamicBufferResult;
 
-// forward decl
 int block_encrypt(unsigned char* block);
 int block_decrypt(unsigned char* block);
 DynamicBufferResult read_dynamic_buffer(const char* file_name);
 unsigned long generateHash(const char* pswd);
 int verifyHash(const char* pswd, unsigned long hash);
 
-void printDebugBinary(unsigned char byte) {
-	for (int i = 7; i >= 0; i--) {
-        // Use bitwise AND to check the value of each bit
-        int bit = (byte >> i) & 1;
-        printf("%d", bit);
-    }
-    printf("\n");
-}
+// ********** Public Func & structs Impl **********
 
 typedef struct __attribute__((packed)) {
 	unsigned int hash_size;
@@ -75,7 +72,7 @@ ENCRYPT_FILE_RETURN encrypt_file(const char *file_name, const char* encryption_k
 		return ENCRYPTION_FILE_ERR;
 	}
 	
-	// Later we can use concurrency here
+	// TODO: Later we can use concurrency here
 	// iterate over the concatenated_contents over 8 byte blocks
 	int num_rounds = curr_size / 8; // auto floor division
 	for (int i = 0; i < num_rounds; i++) {
@@ -189,13 +186,19 @@ DECRYPT_FILE_RETURN decrypt_file(const char *file_name, const char *encryption_k
 
 	// write to a new file
 	if (fwrite(concatenated_contents, sizeof(unsigned char), curr_size, new_file) != curr_size) {
+		fclose(new_file);
 		free(decrypt_file_name);
 		free(concatenated_contents_start);
 		return DECRYPTION_FILE_ERR;
 	}
 	
+	fclose(new_file);
+	free(decrypt_file_name);
+	free(concatenated_contents_start);
 	return 0;
 }
+
+// ************* Utils implementation *****************
 
 DynamicBufferResult read_dynamic_buffer(const char* file_name) {
 	DynamicBufferResult resp = {NULL, 0};
@@ -241,6 +244,7 @@ DynamicBufferResult read_dynamic_buffer(const char* file_name) {
 		}
 		read = fread(&buffer, sizeof (unsigned char), BUFFER_SIZE, file);
 	}
+
 	fclose(file);
 	resp.buffer = concatenated_contents;
 	resp.buffer_size = curr_size;
@@ -294,7 +298,7 @@ int block_decrypt(unsigned char* block) {
 			// set
 			write_byte = write_byte | (1 << (7 - (i % 8)));
 		}
-		
+
 		// back from copy to original block
         block[i / DES_BLOCK_BYTES] = write_byte;
     }
@@ -314,3 +318,4 @@ unsigned long generateHash(const char* pswd) {
 int verifyHash(const char* pswd, unsigned long hash) {
 	return generateHash(pswd) == hash;
 }
+

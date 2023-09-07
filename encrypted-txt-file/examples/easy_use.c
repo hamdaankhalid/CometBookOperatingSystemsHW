@@ -5,6 +5,14 @@ int main() {
 	if (res != 0) {
 		return res;
 	}
+	
+	printf("ENCRYPTION COMPLETED SUCCESSFULLY\n");
+
 	res = decrypt_file("./examples/test_file.crenc", "foobars");
-	return res;
+	if (res != 0) {
+		return res;
+	}
+
+
+	printf("DECRYPTION COMPLETED SUCCESSFULLY\n");
 }
