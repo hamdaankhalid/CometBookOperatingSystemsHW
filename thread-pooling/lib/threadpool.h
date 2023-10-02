@@ -40,12 +40,17 @@ typedef enum {
 InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool, int num_threads);
 
 typedef enum {
+  ENQUEUE_TASK_SUCCESS = 0,
+  ENQUEUE_TASK_SEM_ERR = -1,
+} EnqueueTaskResponse;
+
+EnqueueTaskResponse enqueue_task(ThreadPool *pool, Task task);
+
+typedef enum {
   DESTROY_THREAD_POOL_SUCCESS = 0,
   DESTROY_THREAD_POOL_JOIN_FAIL = -1,
   DESTROY_THREAD_POOL_RW_LOCK_ERR = -2,
 } DestroyThreadPoolResult;
-
-int enqueue_task(ThreadPool *pool, Task task);
 
 DestroyThreadPoolResult destroy_thread_pool(ThreadPool *thread_pool);
 

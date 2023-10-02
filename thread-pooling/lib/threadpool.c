@@ -7,6 +7,11 @@
 #include <sys/semaphore.h>
 #include <unistd.h>
 
+#define RET_ON_FAIL(expr, failure_code)                                        \
+  if (expr != 0) {                                                             \
+    return failure_code;                                                       \
+  }
+
 void *worker_runner(ThreadPool *thread_pool);
 
 // given a thread pool data obj pointer and num of threads
@@ -18,13 +23,12 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
     return INIT_THREAD_POOL_INVALID_NUM_THREADS;
   }
 
-  if (pthread_rwlock_init(&thread_pool->exit_signal_lock, NULL) != 0) {
-    return INIT_THREAD_POOL_RW_LOCK_ERR;
-  }
+  RET_ON_FAIL(pthread_rwlock_init(&thread_pool->exit_signal_lock, NULL),
+              INIT_THREAD_POOL_RW_LOCK_ERR)
 
-  if (pthread_rwlock_wrlock(&thread_pool->exit_signal_lock) != 0) {
-    return INIT_THREAD_POOL_RW_LOCK_ERR;
-  }
+  RET_ON_FAIL(pthread_rwlock_wrlock(&thread_pool->exit_signal_lock),
+              INIT_THREAD_POOL_RW_LOCK_ERR)
+
   thread_pool->exit_signal = 1;
   pthread_rwlock_unlock(&thread_pool->exit_signal_lock);
 
@@ -87,6 +91,10 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
   return INIT_THREAD_POOL_SUCCESS;
 };
 
+// NOTE: For the utilities below I am completely okay with returning
+// the object by value since the object solely holds pointers, so the copy
+// on return is cheap.
+
 // utitlity to add task to buffer channel
 void put(ThreadPool *pool, Task task) {
   pool->buffer[pool->buffer_fill] = task;
@@ -100,12 +108,16 @@ Task get(ThreadPool *pool) {
   return tmp;
 }
 
-int enqueue_task(ThreadPool *pool, Task task) {
-  sem_wait(&pool->empty);
-  sem_wait(&pool->mutex);
+/*
+ * Used to enqueue an async task, this may block if the buffered channel
+ * is full.
+ * */
+EnqueueTaskResponse enqueue_task(ThreadPool *pool, Task task) {
+  RET_ON_FAIL(sem_wait(&pool->empty), ENQUEUE_TASK_SEM_ERR)
+  RET_ON_FAIL(sem_wait(&pool->mutex), ENQUEUE_TASK_SEM_ERR)
   put(pool, task);
-  sem_post(&pool->mutex);
-  sem_post(&pool->full);
+  RET_ON_FAIL(sem_post(&pool->mutex), ENQUEUE_TASK_SEM_ERR)
+  RET_ON_FAIL(sem_post(&pool->full), ENQUEUE_TASK_SEM_ERR)
   return 0;
 }
 
@@ -155,18 +167,16 @@ DestroyThreadPoolResult destroy_thread_pool(ThreadPool *thread_pool) {
 
   // wait for threads to join
   for (int i = 0; i < thread_pool->num_threads; i++) {
-    if (pthread_join(thread_pool->workers[i], NULL) != 0) {
-      return DESTROY_THREAD_POOL_JOIN_FAIL;
-    }
+    RET_ON_FAIL(pthread_join(thread_pool->workers[i], NULL),
+                DESTROY_THREAD_POOL_JOIN_FAIL)
   }
 
   // free array of pthread_t
   free(thread_pool->workers);
 
   // destroy rw lock
-  if (pthread_rwlock_destroy(&thread_pool->exit_signal_lock) != 0) {
-    return DESTROY_THREAD_POOL_RW_LOCK_ERR;
-  }
+  RET_ON_FAIL(pthread_rwlock_destroy(&thread_pool->exit_signal_lock),
+              DESTROY_THREAD_POOL_RW_LOCK_ERR)
 
   sem_destroy(&thread_pool->empty);
   sem_destroy(&thread_pool->full);
