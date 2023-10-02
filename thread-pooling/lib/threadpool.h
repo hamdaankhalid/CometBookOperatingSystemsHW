@@ -9,6 +9,7 @@ typedef struct {
   pthread_rwlock_t exit_signal_lock;
   int exit_signal;
   pthread_t *workers;
+  // TODO: Buffered Channel For workers to listen to
 } ThreadPool;
 
 typedef enum {
