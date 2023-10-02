@@ -10,30 +10,29 @@
 // This function will run till it is signaled
 // to be shutdown
 void *worker_runner(ThreadPool *thread_pool) {
-  int keep_running = 1;
+  int keep_running;
   pthread_t tid;
   tid = pthread_self();
 
-  printf("read lock acquire res %d \n",
-         pthread_rwlock_rdlock(&thread_pool->exit_signal_lock));
+  if (pthread_rwlock_rdlock(&thread_pool->exit_signal_lock) != 0) {
+    pthread_exit(NULL);
+  }
   keep_running = thread_pool->exit_signal;
-  printf("keep running is %d \n", keep_running);
   pthread_rwlock_unlock(&thread_pool->exit_signal_lock);
 
   // while not signal to exit has been set off
   // block on MPSC channel
   while (keep_running) {
     printf("Running worker thread with ID -> %lu \n", tid);
-    if (sleep(1) > 0) {
+    if (sleep(1) != 0) {
       printf("Error has happened");
     }
 
-    printf("read lock acquire res %d \n",
-           pthread_rwlock_rdlock(&thread_pool->exit_signal_lock));
+    if (pthread_rwlock_rdlock(&thread_pool->exit_signal_lock) != 0) {
+      pthread_exit(NULL);
+    }
     keep_running = thread_pool->exit_signal;
-    printf("keep running is %d \n", keep_running);
     pthread_rwlock_unlock(&thread_pool->exit_signal_lock);
-
   }
 
   printf("worker thread with ID exiting -> %lu \n", tid);
@@ -45,15 +44,20 @@ void *worker_runner(ThreadPool *thread_pool) {
 // obj pointer fields. Return 0 if successful else an Error Code enum
 InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
                                       int num_threads) {
-  if (num_threads <= 0) {
+  if (num_threads < 1) {
     return INIT_THREAD_POOL_INVALID_NUM_THREADS;
   }
-  
+
   if (pthread_rwlock_init(&thread_pool->exit_signal_lock, NULL) != 0) {
     return INIT_THREAD_POOL_RW_LOCK_ERR;
   }
 
+  if (pthread_rwlock_wrlock(&thread_pool->exit_signal_lock) != 0) {
+    return INIT_THREAD_POOL_RW_LOCK_ERR;
+  }
   thread_pool->exit_signal = 1;
+  pthread_rwlock_unlock(&thread_pool->exit_signal_lock);
+
   thread_pool->num_threads = num_threads;
 
   thread_pool->workers = (pthread_t *)malloc(sizeof(pthread_t) * num_threads);
@@ -64,7 +68,8 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
   for (int i = 0; i < num_threads; i++) {
     if (pthread_create(&thread_pool->workers[i], NULL,
                        (void *(*)(void *)) & worker_runner,
-                       (void *)&thread_pool) != 0) {
+                       (void *)thread_pool) != 0) {
+      free(thread_pool->workers);
       return INIT_THREAD_POOL_THREAD_CREATE_FAILED;
     }
   }

@@ -5,10 +5,10 @@
 
 typedef struct {
   int num_threads;
-  pthread_t *workers;
   // Read Write Exit signal lock and its exit signal flag
   pthread_rwlock_t exit_signal_lock;
   int exit_signal;
+  pthread_t *workers;
 } ThreadPool;
 
 typedef enum {
