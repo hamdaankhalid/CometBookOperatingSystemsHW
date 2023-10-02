@@ -9,7 +9,7 @@ int main() {
   tp_init_res = init_thread_pool(&tp, 10);
 
   printf("thread pool was created with result %d \n", tp_init_res);
- 
+
   // ----- INITIALIZATION ---------
 
   for (int i = 0; i < 30; i++) {
