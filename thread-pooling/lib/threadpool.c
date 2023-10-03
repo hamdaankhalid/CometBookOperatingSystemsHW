@@ -1,15 +1,33 @@
 #include "threadpool.h"
 
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
 
 #define RET_ON_FAIL(expr, failure_code)                                        \
   if (expr != 0) {                                                             \
     return failure_code;                                                       \
   }
+
+// Macro based logger so that in non debug mode we are not incurring cost
+// of extra instructions
+#define DEBUG 0
+
+// Variadic argument based logging macro
+// Using macros makes sure non debugging
+// code has no performance impact
+#ifndef DEBUG
+#define LOG(...) ;
+#else
+pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOG(...)                                                               \
+  pthread_mutex_lock(&log_mutex);                                              \
+  printf(__VA_ARGS__);                                                         \
+  pthread_mutex_unlock(&log_mutex);
+#endif
 
 void *worker_runner(ThreadPool *thread_pool);
 
@@ -112,11 +130,19 @@ Task get(ThreadPool *pool) {
  * is full.
  * */
 EnqueueTaskResponse enqueue_task(ThreadPool *pool, Task task) {
+  LOG("PRODUCER: Enqueuing task\n")
+
+  uuid_t uuid;
+  uuid_generate(uuid);
+  uuid_unparse_lower(uuid, task.uuid_str);
+
   RET_ON_FAIL(sem_wait(&pool->empty), ENQUEUE_TASK_SEM_ERR)
   RET_ON_FAIL(sem_wait(&pool->mutex), ENQUEUE_TASK_SEM_ERR)
   put(pool, task);
   RET_ON_FAIL(sem_post(&pool->mutex), ENQUEUE_TASK_SEM_ERR)
   RET_ON_FAIL(sem_post(&pool->full), ENQUEUE_TASK_SEM_ERR)
+
+  LOG("PRODUCER: Task enqueued\n")
   return 0;
 }
 
@@ -137,7 +163,7 @@ void *worker_runner(ThreadPool *thread_pool) {
   // while not signal to exit has been set off
   // block on MPSC channel
   while (keep_running) {
-    printf("Running worker thread with ID -> %lu \n", tid);
+    LOG("WORKER: Running thread with ID -> %lu \n", tid)
 
     sem_wait(&thread_pool->full);
     sem_wait(&thread_pool->mutex);
@@ -145,9 +171,10 @@ void *worker_runner(ThreadPool *thread_pool) {
     sem_post(&thread_pool->mutex);
     sem_post(&thread_pool->empty);
 
-    printf("RECVD TASK BY THREAD! %lu\n", tid);
-	// fake processing
-	sleep(1);
+    LOG("WORKER: %lu recvd task with id %s \n", tid, task.uuid_str)
+
+    // fake processing
+    sleep(1);
 
     if (pthread_rwlock_rdlock(&thread_pool->exit_signal_lock) != 0) {
       pthread_exit(NULL);
@@ -156,7 +183,7 @@ void *worker_runner(ThreadPool *thread_pool) {
     pthread_rwlock_unlock(&thread_pool->exit_signal_lock);
   }
 
-  printf("worker thread with ID exiting -> %lu \n", tid);
+  LOG("WORKER: %lu exiting \n", tid)
   pthread_exit(NULL);
 }
 

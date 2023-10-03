@@ -2,7 +2,7 @@
 CC = gcc
 CFLAGS = -Wall -I./lib
 LDFLAGS = -L./build
-LIBS = -lthreadpool
+LIBS = -lthreadpool -luuid
 
 # Directories
 SRC_DIR = lib

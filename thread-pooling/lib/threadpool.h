@@ -7,6 +7,7 @@
 #define MAX_BUFFER 100
 
 typedef struct __task {
+  char uuid_str[37];
   void *(*func)(void *);
   void *args;
 } Task;

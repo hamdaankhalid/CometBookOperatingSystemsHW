@@ -5,8 +5,7 @@ FROM ubuntu:latest AS Dependencies
 WORKDIR /usr/src/app
 
 # Install GCC (GNU Compiler Collection)
-RUN apt-get update && apt-get install -y gcc make
-
+RUN apt-get update && apt-get install -y gcc make uuid-dev
 
 FROM Dependencies
 
