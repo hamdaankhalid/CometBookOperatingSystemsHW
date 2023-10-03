@@ -210,5 +210,7 @@ DestroyThreadPoolResult destroy_thread_pool(ThreadPool *thread_pool) {
   sem_destroy(&thread_pool->full);
   sem_destroy(&thread_pool->mutex);
 
-  return DESTROY_THREAD_POOL_SUCCESS;
+#ifdef DEBUG
+  pthread_mutex_destroy(&log_mutex);
+#endif
 }
