@@ -2,10 +2,12 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
+#include <string.h>
 
 #define RET_ON_FAIL(expr, resp)                                                \
   if (expr != 0) {                                                             \
@@ -14,7 +16,7 @@
 
 // Macro based logger so that in non debug mode we are not incurring cost
 // of extra instructions
-#define DEBUG 0
+// #define DEBUG 0
 
 // Variadic argument based logging macro
 // Using macros makes sure non debugging
@@ -109,10 +111,11 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
 };
 
 // ctor/initializer for new task
-void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result) {
+void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result, size_t result_size) {
   task->func = func;
   task->args = args;
   task->task_result = task_result;
+  task->result_size = result_size;
 
   uuid_t uuid;
   uuid_generate(uuid);
@@ -132,7 +135,10 @@ void destroy_task(Task *task) {
 
 // blocks till the task is completed and result is
 // filled
-void await_task(Task *task) { sem_wait(task->task_awaiter); }
+void await_task(Task *task) {
+  sem_wait(task->task_awaiter);
+  LOG("PRODUCER: Task %s completed \n", task->uuid_str)
+}
 
 // NOTE: For the utilities below I am completely okay with returning
 // the object by value since the object solely holds pointers, so the copy
@@ -156,8 +162,6 @@ Task get(ThreadPool *pool) {
  * is full.
  * */
 EnqueueTaskResponse enqueue_task(ThreadPool *pool, Task task) {
-  LOG("PRODUCER: Enqueuing task\n")
-
   EnqueueTaskResponse enq_resp;
   enq_resp.resp_code = ENQUEUE_TASK_SEM_ERR;
   enq_resp.task_awaiter = NULL;
@@ -168,7 +172,7 @@ EnqueueTaskResponse enqueue_task(ThreadPool *pool, Task task) {
   RET_ON_FAIL(sem_post(&pool->mutex), enq_resp)
   RET_ON_FAIL(sem_post(&pool->full), enq_resp)
 
-  LOG("PRODUCER: Task enqueued\n")
+  LOG("PRODUCER: Task %s enqueued\n", task.uuid_str)
   enq_resp.resp_code = ENQUEUE_TASK_SUCCESS;
   return enq_resp;
 }
@@ -187,10 +191,11 @@ void *worker_runner(ThreadPool *thread_pool) {
   keep_running = thread_pool->exit_signal;
   pthread_rwlock_unlock(&thread_pool->exit_signal_lock);
 
+  LOG("WORKER: Running thread with ID -> %lu \n", tid)
+
   // while not signal to exit has been set off
   // block on MPSC channel
   while (keep_running) {
-    LOG("WORKER: Running thread with ID -> %lu \n", tid)
 
     sem_wait(&thread_pool->full);
     sem_wait(&thread_pool->mutex);
@@ -198,10 +203,7 @@ void *worker_runner(ThreadPool *thread_pool) {
     sem_post(&thread_pool->mutex);
     sem_post(&thread_pool->empty);
 
-    LOG("WORKER: %lu recvd task with id %s \n", tid, task.uuid_str)
-
-    // fake processing
-    sleep(1);
+	memcpy(task.task_result, task.func(task.args), task.result_size);
 
     sem_post(task.task_awaiter);
 
@@ -242,4 +244,5 @@ DestroyThreadPoolResult destroy_thread_pool(ThreadPool *thread_pool) {
 #ifdef DEBUG
   pthread_mutex_destroy(&log_mutex);
 #endif
+  return DESTROY_THREAD_POOL_SUCCESS;
 }

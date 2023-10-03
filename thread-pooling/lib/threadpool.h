@@ -3,8 +3,9 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <stddef.h>
 
-#define MAX_BUFFER 100
+#define MAX_BUFFER 10
 
 typedef void *(*UserDefFunc_t)(void *);
 
@@ -14,9 +15,10 @@ typedef struct __task {
   char uuid_str[37];
   sem_t *task_awaiter;
   void *task_result;
+  size_t result_size;
 } Task;
 
-void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result);
+void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result, size_t result_size);
 
 void destroy_task(Task *task);
 
