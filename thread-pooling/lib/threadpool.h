@@ -36,7 +36,8 @@ typedef struct {
   int buffer_use;
   sem_t empty;
   sem_t full;
-  sem_t mutex;
+  sem_t mutex; // semaphore mutex used to wrap the critical sections of put and
+               // get calls to buffer
 } ThreadPool;
 
 typedef enum {

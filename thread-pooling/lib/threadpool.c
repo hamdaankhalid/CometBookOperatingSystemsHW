@@ -4,7 +4,6 @@
 #include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/semaphore.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
 
