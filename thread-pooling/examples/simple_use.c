@@ -9,6 +9,11 @@ int main() {
   tp_init_res = init_thread_pool(&tp, 10);
 
   printf("thread pool was created with result %d \n", tp_init_res);
+	
+  if (tp_init_res != 0) {
+	  printf("Failed to initialize thread pool\n");
+	  return -1;
+  }
 
   // ----- INITIALIZATION ---------
 
@@ -16,6 +21,7 @@ int main() {
     Task task = {NULL, NULL};
     enqueue_task(&tp, task);
   }
+
 
   // ----- DESTRUCTION -------
   printf("Requesting thread pool destruction\n");

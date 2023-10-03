@@ -3,8 +3,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/_pthread/_pthread_rwlock_t.h>
-#include <sys/semaphore.h>
+#include <semaphore.h>
 #include <unistd.h>
 
 #define RET_ON_FAIL(expr, failure_code)                                        \
@@ -146,7 +145,9 @@ void *worker_runner(ThreadPool *thread_pool) {
     sem_post(&thread_pool->mutex);
     sem_post(&thread_pool->empty);
 
-    printf("RECVD TASK BY THREAd %lu\n", tid);
+    printf("RECVD TASK BY THREAD! %lu\n", tid);
+	// fake processing
+	sleep(1);
 
     if (pthread_rwlock_rdlock(&thread_pool->exit_signal_lock) != 0) {
       pthread_exit(NULL);
