@@ -31,7 +31,7 @@ pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
   pthread_mutex_unlock(&log_mutex);
 #endif
 
-void *worker_runner(ThreadPool *thread_pool);
+static void *worker_runner(ThreadPool *thread_pool);
 
 // given a thread pool data obj pointer and num of threads
 // intiailize a set of worker threads and store their metadata in
@@ -41,15 +41,6 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
   if (num_threads < 1) {
     return INIT_THREAD_POOL_INVALID_NUM_THREADS;
   }
-
-  RET_ON_FAIL(pthread_rwlock_init(&thread_pool->exit_signal_lock, NULL),
-              INIT_THREAD_POOL_RW_LOCK_ERR)
-
-  RET_ON_FAIL(pthread_rwlock_wrlock(&thread_pool->exit_signal_lock),
-              INIT_THREAD_POOL_RW_LOCK_ERR)
-
-  thread_pool->exit_signal = 1;
-  pthread_rwlock_unlock(&thread_pool->exit_signal_lock);
 
   thread_pool->num_threads = num_threads;
 
@@ -64,7 +55,6 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
    * the task, the producer call will sit blocked, till a consumer picks it up
    */
   if (sem_init(&thread_pool->empty, 0, MAX_BUFFER) != 0) {
-    pthread_rwlock_destroy(&thread_pool->exit_signal_lock);
     return INIT_THREAD_POOL_SEM_ERR;
   }
 
@@ -75,7 +65,6 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
    * */
   if (sem_init(&thread_pool->full, 0, 0) != 0) {
     sem_destroy(&thread_pool->empty);
-    pthread_rwlock_destroy(&thread_pool->exit_signal_lock);
     return INIT_THREAD_POOL_SEM_ERR;
   }
 
@@ -86,7 +75,6 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
   if (sem_init(&thread_pool->mutex, 0, 1) != 0) {
     sem_destroy(&thread_pool->empty);
     sem_destroy(&thread_pool->full);
-    pthread_rwlock_destroy(&thread_pool->exit_signal_lock);
     return INIT_THREAD_POOL_SEM_ERR;
   }
 
@@ -111,24 +99,36 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
 };
 
 // ctor/initializer for new task
-void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result, size_t result_size) {
+void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result, size_t result_size, bool_t is_fire_and_forget) {
   task->func = func;
   task->args = args;
-  task->task_result = task_result;
-  task->result_size = result_size;
+  if (is_fire_and_forget) {
+      task->task_result = NULL;
+      task->result_size = 0;
+  } else {
+      task->task_result = task_result;
+      task->result_size = result_size;
+  }
 
   uuid_t uuid;
   uuid_generate(uuid);
   uuid_unparse_lower(uuid, task->uuid_str);
 
-  // start off awaiter semaphore with 0 so any calls to wait block the calling
-  // thread
-  task->task_awaiter = (sem_t *)malloc(sizeof(sem_t));
-  sem_init(task->task_awaiter, 0, 0);
+  if (is_fire_and_forget) {
+      task->task_awaiter = NULL;
+  } else {
+  // start off awaiter semaphore with 0 so any calls to wait block the calling thread
+      task->task_awaiter = (sem_t *)malloc(sizeof(sem_t));
+      sem_init(task->task_awaiter, 0, 0);
+  }
 }
 
 // dtor
 void destroy_task(Task *task) {
+  // no effect if you call destroy task on a fire and forget task
+  if (task->task_awaiter == NULL) {
+      return;
+  }
   sem_destroy(task->task_awaiter);
   free(task->task_awaiter);
 }
@@ -136,6 +136,10 @@ void destroy_task(Task *task) {
 // blocks till the task is completed and result is
 // filled
 void await_task(Task *task) {
+  // callign await ona  fire and forget task returns immediately
+  if (task->task_awaiter == NULL) {
+      return;
+  }
   sem_wait(task->task_awaiter);
   LOG("PRODUCER: Task %s completed \n", task->uuid_str)
 }
@@ -145,13 +149,13 @@ void await_task(Task *task) {
 // on return is cheap.
 
 // utitlity to add task to buffer channel
-void put(ThreadPool *pool, Task task) {
+static void put(ThreadPool *pool, Task task) {
   pool->buffer[pool->buffer_fill] = task;
   pool->buffer_fill = (pool->buffer_fill + 1) % MAX_BUFFER;
 }
 
 // utitlity to get a task from buffer channel
-Task get(ThreadPool *pool) {
+static Task get(ThreadPool *pool) {
   Task tmp = pool->buffer[pool->buffer_use];
   pool->buffer_use = (pool->buffer_use + 1) % MAX_BUFFER;
   return tmp;
@@ -180,62 +184,40 @@ EnqueueTaskResponse enqueue_task(ThreadPool *pool, Task task) {
 // Every worker thread will run this function
 // This function will run till it is signaled
 // to be shutdown
-void *worker_runner(ThreadPool *thread_pool) {
-  int keep_running;
+static void *worker_runner(ThreadPool *thread_pool) {
   pthread_t tid;
   tid = pthread_self();
-
-  if (pthread_rwlock_rdlock(&thread_pool->exit_signal_lock) != 0) {
-    pthread_exit(NULL);
-  }
-  keep_running = thread_pool->exit_signal;
-  pthread_rwlock_unlock(&thread_pool->exit_signal_lock);
 
   LOG("WORKER: Running thread with ID -> %lu \n", tid)
 
   // while not signal to exit has been set off
   // block on MPSC channel
-  while (keep_running) {
-
+  while (1) {
     sem_wait(&thread_pool->full);
     sem_wait(&thread_pool->mutex);
     Task task = get(thread_pool);
     sem_post(&thread_pool->mutex);
     sem_post(&thread_pool->empty);
 
-	memcpy(task.task_result, task.func(task.args), task.result_size);
-
-    sem_post(task.task_awaiter);
-
-    if (pthread_rwlock_rdlock(&thread_pool->exit_signal_lock) != 0) {
-      pthread_exit(NULL);
+    // Execute task, and transfer result
+	task.func(task.args, task.task_result);
+    if (task.task_awaiter != NULL) {
+      sem_post(task.task_awaiter);
     }
-    keep_running = thread_pool->exit_signal;
-    pthread_rwlock_unlock(&thread_pool->exit_signal_lock);
+    // ------------------
   }
-
-  LOG("WORKER: %lu exiting \n", tid)
-  pthread_exit(NULL);
 }
 
 DestroyThreadPoolResult destroy_thread_pool(ThreadPool *thread_pool) {
-  // signal all threads to end
-  pthread_rwlock_wrlock(&thread_pool->exit_signal_lock);
-  thread_pool->exit_signal = 0;
-  pthread_rwlock_unlock(&thread_pool->exit_signal_lock);
-
-  // wait for threads to join
+  // would be nice to be able to wait for all tasks to finish but the 
+  // destructor should only be called if the invoker is done awaiting
+  // all tasks
   for (int i = 0; i < thread_pool->num_threads; i++) {
-    RET_ON_FAIL(pthread_join(thread_pool->workers[i], NULL),
-                DESTROY_THREAD_POOL_JOIN_FAIL)
+    pthread_cancel(thread_pool->workers[i]);
   }
 
   // free array of pthread_t
   free(thread_pool->workers);
-
-  // destroy rw lock
-  RET_ON_FAIL(pthread_rwlock_destroy(&thread_pool->exit_signal_lock),
-              DESTROY_THREAD_POOL_RW_LOCK_ERR)
 
   sem_destroy(&thread_pool->empty);
   sem_destroy(&thread_pool->full);

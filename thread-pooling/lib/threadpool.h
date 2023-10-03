@@ -5,9 +5,13 @@
 #include <semaphore.h>
 #include <stddef.h>
 
+typedef int bool_t;
+#define TRUE 1
+#define FALSE 0
+
 #define MAX_BUFFER 10
 
-typedef void *(*UserDefFunc_t)(void *);
+typedef void (*UserDefFunc_t)(void * in, void* out);
 
 typedef struct __task {
   UserDefFunc_t func;
@@ -18,7 +22,7 @@ typedef struct __task {
   size_t result_size;
 } Task;
 
-void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result, size_t result_size);
+void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result, size_t result_size, bool_t fire_and_forget);
 
 void destroy_task(Task *task);
 
@@ -26,10 +30,6 @@ void await_task(Task *task);
 
 typedef struct {
   int num_threads;
-
-  // Read Write Exit signal lock and its exit signal flag
-  pthread_rwlock_t exit_signal_lock;
-  int exit_signal;
   pthread_t *workers;
 
   // Buffered Channel For workers and enqueuer func to use

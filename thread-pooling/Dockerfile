@@ -1,5 +1,5 @@
 # Use the official Ubuntu base image
-FROM ubuntu:latest AS Dependencies
+FROM ubuntu:latest AS dependencies
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
@@ -7,7 +7,7 @@ WORKDIR /usr/src/app
 # Install GCC (GNU Compiler Collection)
 RUN apt-get update && apt-get install -y gcc make uuid-dev
 
-FROM Dependencies
+FROM dependencies
 
 # Copy your C code into the container
 COPY . .
