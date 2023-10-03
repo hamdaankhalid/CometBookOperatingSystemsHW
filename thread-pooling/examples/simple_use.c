@@ -17,10 +17,15 @@ int main() {
 
   // ----- INITIALIZATION ---------
 
+  // create 50 new tasks
+  // kick them off in sequence and track how long it took to complete
   for (int i = 0; i < 230; i++) {
-    Task task = {NULL, NULL};
-    enqueue_task(&tp, task);
   }
+
+  // destroy old 50 tasks
+
+  // create another 50 tasks
+  // kick them off in parallel and track how long it took to complete
 
   // ----- DESTRUCTION -------
   printf("Requesting thread pool destruction\n");

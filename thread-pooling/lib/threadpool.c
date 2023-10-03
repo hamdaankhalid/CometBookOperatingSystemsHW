@@ -4,12 +4,13 @@
 #include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/semaphore.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
 
-#define RET_ON_FAIL(expr, failure_code)                                        \
+#define RET_ON_FAIL(expr, resp)                                                \
   if (expr != 0) {                                                             \
-    return failure_code;                                                       \
+    return resp;                                                               \
   }
 
 // Macro based logger so that in non debug mode we are not incurring cost
@@ -108,6 +109,32 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
   return INIT_THREAD_POOL_SUCCESS;
 };
 
+// ctor/initializer for new task
+void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result) {
+  task->func = func;
+  task->args = args;
+  task->task_result = task_result;
+
+  uuid_t uuid;
+  uuid_generate(uuid);
+  uuid_unparse_lower(uuid, task->uuid_str);
+
+  // start off awaiter semaphore with 0 so any calls to wait block the calling
+  // thread
+  task->task_awaiter = (sem_t *)malloc(sizeof(sem_t));
+  sem_init(task->task_awaiter, 0, 0);
+}
+
+// dtor
+void destroy_task(Task *task) {
+  sem_destroy(task->task_awaiter);
+  free(task->task_awaiter);
+}
+
+// blocks till the task is completed and result is
+// filled
+void await_task(Task *task) { sem_wait(task->task_awaiter); }
+
 // NOTE: For the utilities below I am completely okay with returning
 // the object by value since the object solely holds pointers, so the copy
 // on return is cheap.
@@ -132,18 +159,19 @@ Task get(ThreadPool *pool) {
 EnqueueTaskResponse enqueue_task(ThreadPool *pool, Task task) {
   LOG("PRODUCER: Enqueuing task\n")
 
-  uuid_t uuid;
-  uuid_generate(uuid);
-  uuid_unparse_lower(uuid, task.uuid_str);
+  EnqueueTaskResponse enq_resp;
+  enq_resp.resp_code = ENQUEUE_TASK_SEM_ERR;
+  enq_resp.task_awaiter = NULL;
 
-  RET_ON_FAIL(sem_wait(&pool->empty), ENQUEUE_TASK_SEM_ERR)
-  RET_ON_FAIL(sem_wait(&pool->mutex), ENQUEUE_TASK_SEM_ERR)
+  RET_ON_FAIL(sem_wait(&pool->empty), enq_resp)
+  RET_ON_FAIL(sem_wait(&pool->mutex), enq_resp)
   put(pool, task);
-  RET_ON_FAIL(sem_post(&pool->mutex), ENQUEUE_TASK_SEM_ERR)
-  RET_ON_FAIL(sem_post(&pool->full), ENQUEUE_TASK_SEM_ERR)
+  RET_ON_FAIL(sem_post(&pool->mutex), enq_resp)
+  RET_ON_FAIL(sem_post(&pool->full), enq_resp)
 
   LOG("PRODUCER: Task enqueued\n")
-  return 0;
+  enq_resp.resp_code = ENQUEUE_TASK_SUCCESS;
+  return enq_resp;
 }
 
 // Every worker thread will run this function
@@ -175,6 +203,8 @@ void *worker_runner(ThreadPool *thread_pool) {
 
     // fake processing
     sleep(1);
+
+    sem_post(task.task_awaiter);
 
     if (pthread_rwlock_rdlock(&thread_pool->exit_signal_lock) != 0) {
       pthread_exit(NULL);

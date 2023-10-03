@@ -6,11 +6,21 @@
 
 #define MAX_BUFFER 100
 
+typedef void *(*UserDefFunc_t)(void *);
+
 typedef struct __task {
-  char uuid_str[37];
-  void *(*func)(void *);
+  UserDefFunc_t func;
   void *args;
+  char uuid_str[37];
+  sem_t *task_awaiter;
+  void *task_result;
 } Task;
+
+void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result);
+
+void destroy_task(Task *task);
+
+void await_task(Task *task);
 
 typedef struct {
   int num_threads;
@@ -43,6 +53,11 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool, int num_threads);
 typedef enum {
   ENQUEUE_TASK_SUCCESS = 0,
   ENQUEUE_TASK_SEM_ERR = -1,
+} EnqueueTaskResponseCode;
+
+typedef struct {
+  EnqueueTaskResponseCode resp_code;
+  sem_t *task_awaiter;
 } EnqueueTaskResponse;
 
 EnqueueTaskResponse enqueue_task(ThreadPool *pool, Task task);
