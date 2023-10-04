@@ -22,7 +22,7 @@ typedef struct __task {
   size_t result_size;
 } Task;
 
-void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result, size_t result_size, bool_t fire_and_forget);
+void new_task(Task *task, UserDefFunc_t func, void *args, void *task_result, size_t result_size, bool_t is_fire_and_forget);
 
 void destroy_task(Task *task);
 
@@ -37,7 +37,7 @@ typedef struct {
   int buffer_fill;
   int buffer_use;
   sem_t empty;
-  sem_t full;
+  sem_t added;
   sem_t mutex; // semaphore mutex used to wrap the critical sections of put and
                // get calls to buffer
 } ThreadPool;

@@ -63,7 +63,7 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
    * to be picked up. It starts at 0, and is incrmented by the producer,
    * and waited on by the consumer.
    * */
-  if (sem_init(&thread_pool->full, 0, 0) != 0) {
+  if (sem_init(&thread_pool->added, 0, 0) != 0) {
     sem_destroy(&thread_pool->empty);
     return INIT_THREAD_POOL_SEM_ERR;
   }
@@ -74,7 +74,7 @@ InitThreadPoolResult init_thread_pool(ThreadPool *thread_pool,
    * */
   if (sem_init(&thread_pool->mutex, 0, 1) != 0) {
     sem_destroy(&thread_pool->empty);
-    sem_destroy(&thread_pool->full);
+    sem_destroy(&thread_pool->added);
     return INIT_THREAD_POOL_SEM_ERR;
   }
 
@@ -174,7 +174,7 @@ EnqueueTaskResponse enqueue_task(ThreadPool *pool, Task task) {
   RET_ON_FAIL(sem_wait(&pool->mutex), enq_resp)
   put(pool, task);
   RET_ON_FAIL(sem_post(&pool->mutex), enq_resp)
-  RET_ON_FAIL(sem_post(&pool->full), enq_resp)
+  RET_ON_FAIL(sem_post(&pool->added), enq_resp)
 
   LOG("PRODUCER: Task %s enqueued\n", task.uuid_str)
   enq_resp.resp_code = ENQUEUE_TASK_SUCCESS;
@@ -193,7 +193,7 @@ static void *worker_runner(ThreadPool *thread_pool) {
   // while not signal to exit has been set off
   // block on MPSC channel
   while (1) {
-    sem_wait(&thread_pool->full);
+    sem_wait(&thread_pool->added);
     sem_wait(&thread_pool->mutex);
     Task task = get(thread_pool);
     sem_post(&thread_pool->mutex);
@@ -220,7 +220,7 @@ DestroyThreadPoolResult destroy_thread_pool(ThreadPool *thread_pool) {
   free(thread_pool->workers);
 
   sem_destroy(&thread_pool->empty);
-  sem_destroy(&thread_pool->full);
+  sem_destroy(&thread_pool->added);
   sem_destroy(&thread_pool->mutex);
 
 #ifdef DEBUG
