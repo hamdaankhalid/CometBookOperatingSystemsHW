@@ -39,7 +39,7 @@ int main() {
   Task sequential_tasks[NUMBER_TASKS];
   AddArgs args = {2, 3};
   for (int i = 0; i < NUMBER_TASKS; i++) {
-    new_task(&sequential_tasks[i], &add, &args, &seq_results[i], sizeof(int), FALSE);
+    new_task(&sequential_tasks[i], (UserDefFunc_t)&add, &args, &seq_results[i], sizeof(int), FALSE);
     enqueue_task(&tp, sequential_tasks[i]);
     await_task(&sequential_tasks[i]);
     // test correctness
@@ -57,7 +57,7 @@ int main() {
   clock_t conc_start = clock();
   Task concurrent_tasks[NUMBER_TASKS];
   for (int i = 0; i < NUMBER_TASKS; i++) {
-    new_task(&concurrent_tasks[i], &add, &con_args, &con_results[i], sizeof(int), FALSE);
+    new_task(&concurrent_tasks[i], (UserDefFunc_t) &add, &con_args, &con_results[i], sizeof(int), FALSE);
     enqueue_task(&tp, concurrent_tasks[i]);
   }
 

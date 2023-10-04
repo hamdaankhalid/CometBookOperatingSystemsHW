@@ -185,10 +185,8 @@ EnqueueTaskResponse enqueue_task(ThreadPool *pool, Task task) {
 // This function will run till it is signaled
 // to be shutdown
 static void *worker_runner(ThreadPool *thread_pool) {
-  pthread_t tid;
-  tid = pthread_self();
 
-  LOG("WORKER: Running thread with ID -> %lu \n", tid)
+  LOG("WORKER: Running thread with ID -> %lu \n", pthread_self())
 
   // while not signal to exit has been set off
   // block on MPSC channel
@@ -206,6 +204,7 @@ static void *worker_runner(ThreadPool *thread_pool) {
     }
     // ------------------
   }
+  return NULL;
 }
 
 DestroyThreadPoolResult destroy_thread_pool(ThreadPool *thread_pool) {
